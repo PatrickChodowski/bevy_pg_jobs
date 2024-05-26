@@ -1,12 +1,14 @@
 [package]
-name = "bevy_pg_calendar"
-version = "1.0.o"
+name = "bevy_pg_jobs"
+version = "1.0.0"
 edition = "2021"
 description = "PG (PatchGames) Jobs-AI to be used with Bevy"
 license = "MIT OR Apache-2.0"
 
 [dependencies]
-bevy = { version = "0.13.2", default-features = false, features = []}
+# bevy = { git = "https://www.github.com/bevyengine/bevy", default-features = false, features = []}
+bevy = {version = "0.13.2", default-features = false, features = []}
 serde = "1.0.197"
 serde_json = "1.0.114"
 chrono = {version = "0.4.35", default-features = false, features = ["serde"]}
+bevy_pg_calendar = {git = "https://www.github.com/PatrickChodowski/bevy_pg_calendar", tag="1.0.8"}
