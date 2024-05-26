@@ -7,8 +7,31 @@ license = "MIT OR Apache-2.0"
 
 [dependencies]
 # bevy = { git = "https://www.github.com/bevyengine/bevy", default-features = false, features = []}
-bevy = {version = "0.13.2", default-features = false, features = []}
+bevy = { version = "0.13.2", default-features = false, features = [
+    "animation",
+    "bevy_asset",
+    "bevy_gilrs",
+    "bevy_scene",
+    "bevy_winit",
+    "bevy_core_pipeline",
+    "bevy_pbr",
+    "bevy_gltf",
+    "bevy_render",
+    "bevy_sprite",
+    "bevy_text",
+    "bevy_ui",
+    "multi-threaded",
+    "png",
+    "hdr",
+    "x11",
+    "bevy_gizmos",
+    "tonemapping_luts",
+    "default_font",
+    "webgl2",
+    "bevy_debug_stepping",
+] }
 serde = "1.0.197"
 serde_json = "1.0.114"
+libm = "0.2.8"
 chrono = {version = "0.4.35", default-features = false, features = ["serde"]}
 bevy_pg_calendar = {git = "https://www.github.com/PatrickChodowski/bevy_pg_calendar", tag="1.0.8"}

@@ -2,7 +2,7 @@ use bevy::app::{App, Plugin, PreUpdate, Update};
 use bevy::ecs::schedule::common_conditions::on_event;
 use bevy::ecs::schedule::{IntoSystemConfigs, Condition};
 use bevy::ecs::entity::Entity;
-use bevy::ecs::event::{Event, EventWriter, EventReader};
+use bevy::ecs::event::{Event, EventWriter};
 use bevy::ecs::system::{Resource, Res, ResMut};
 use bevy::ecs::system::Commands;
 use bevy::log::info;
@@ -79,17 +79,47 @@ pub fn if_jobs_active(jobs: Res<Jobs>) -> bool {
 #[derive(Resource)]
 pub struct Jobs {
     active: bool,                   // For all jobs
-    // data:   HashMap<Entity, Job>    // Map Option with Entity, but on the beginning of the job there might not be entity
     data:   Vec<Job>
 }
 impl Jobs {
     fn init(active: bool) -> Self {
-        // Self {active, data: HashMap::new()}
         Self {active, data: Vec::new()}
     }
     pub fn upsert(&mut self, job: Job) {
         self.data.push(job); // This allows for multiple jobs per entity :o
     }
+
+    pub fn get(&self, entity: &Entity) -> Option<&Job> {
+        for job in self.data.iter(){
+            if let Some(job_entity) = job.entity {
+                if entity == &job_entity {
+                    return Some(job);
+                }
+            }
+        }
+        return None;
+    }
+
+    pub fn get_mut(&mut self, entity: &Entity) -> Option<&mut Job> {
+        for job in self.data.iter_mut(){
+            if let Some(job_entity) = job.entity {
+                if entity == &job_entity {
+                    return Some(job);
+                }
+            }
+        }
+        return None;
+    }
+
+    pub fn next_task(&mut self, commands: &mut Commands, task_entity: &Entity) {
+        if let Some(job) = self.get_mut(&task_entity) {
+            let next_task_type = job.tasks.next_task();
+            next_task_type.add_task(commands, task_entity);
+        } else {
+            panic!("no entity {:?} in jobs", task_entity);
+        }
+    }
+
     // pub fn upsert(&mut self, entity: Entity, job: Job) {
     //     self.data.insert(entity, job);
     // }
@@ -142,6 +172,22 @@ impl Default for Job {
 }
 
 impl Job {
+    
+    pub fn start(&mut self, 
+                 commands:           &mut Commands,
+                 trigger_job:        &mut EventWriter<TriggerJobEvent>,
+                 trigger_prejob:     &mut EventWriter<TriggerPreJobEvent>
+                ) {
+        let entity = self.tasks.start(commands);
+        if self.prejob {
+            trigger_prejob.send(TriggerPreJobEvent);
+        } else {
+            trigger_job.send(TriggerJobEvent{entity});
+        }
+        self.entity = Some(entity);
+        self.set_active();
+    }
+
     pub fn new() -> Self {
 
         let job = Job{
@@ -203,18 +249,9 @@ fn trigger_jobs_calendar(mut commands:         Commands,
             JobSchedule::Cron(cron) => {
                 if cron.hours.as_ref().unwrap().contains(&calendar.get_current_hour()) && 
                    cron.days_week.as_ref().unwrap().contains(&calendar.get_current_weekday()){
-
-                    let entity = job.tasks.start(&mut commands);
-                        
-                    if job.prejob {
-                        trigger_prejob.send(TriggerPreJobEvent);
-                    } else {
-                        trigger_job.send(TriggerJobEvent{entity});
-                    }
-                    job.set_active();
+                    job.start(&mut commands, &mut trigger_job, &mut trigger_prejob);
                 }
              }
-
             _=> {}
         }
     }
@@ -238,13 +275,7 @@ fn trigger_jobs_time(mut commands:           Commands,
 
         match &job.schedule {
             JobSchedule::Instant => {
-                let entity = job.tasks.start(&mut commands);
-                if job.prejob {
-                    trigger_prejob.send(TriggerPreJobEvent);
-                } else {
-                    trigger_job.send(TriggerJobEvent{entity});
-                }
-                job.set_active();
+                job.start(&mut commands, &mut trigger_job, &mut trigger_prejob);
             }
             _=> {}
         }

@@ -1,44 +1,31 @@
-
-/*
-    This script is to be added to the main game app. It should contain:
-    - Tasks Plugin
-    - TaskType enum
-    - WorkerTask structs for each Task
-    - systems to dispatch tasks
-    - definition of JobTask
-    - TaskStatus enum
-*/
-
-use bevy::ecs::storage::Table;
-use bevy::ecs::world::World;
-use bevy::ecs::system::Resource;
-use bevy::ecs::entity::Entity;
-use bevy::app::{App, Plugin, Startup, Update};
-use bevy::transform::commands;
+// Bevy dependencies
+use bevy::prelude::*;
 use bevy::utils::HashMap;
-use bevy::ecs::schedule::{IntoSystemConfigs, Condition};
-use bevy::log::info;
-use bevy::ecs::system::{RunSystemOnce, SystemId, Commands, ResMut, Res, Query};
-use bevy::ecs::component::{Component, ComponentStorage, TableStorage, SparseStorage};
-use bevy::ecs::bundle::{Bundle, DynamicBundle};
+use bevy::sprite::MaterialMesh2dBundle;
+
+use libm::{atan2f, fabsf, cosf, sinf}; 
+
+// Crate dependencies
+use bevy_pg_calendar::prelude::{Calendar, CalendarNewHourEvent};
+use crate::pg_jobs::Jobs;
+use crate::prelude::JobSchedule;
 
 pub struct TasksPlugin;
 
 impl Plugin for TasksPlugin {
     fn build(&self, app: &mut App) {
         app
-        .add_systems(Update, update_tasks)
+        .add_systems(Update, (spawn_task, 
+                              wait_task_time, 
+                              wait_idle_calendar.run_if(on_event::<CalendarNewHourEvent>()),
+                              move_task
+                            ))
         ;
     }
 }
 
-fn update_tasks(){
-
-}
-
-
 // Fill it up with the tasks for the game
-#[derive(Component, Clone, Copy)]
+#[derive(Component, Clone)]
 pub enum TaskType {
     Spawn(SpawnTask),
     Despawn(DespawnTask),
@@ -47,13 +34,22 @@ pub enum TaskType {
     Wait(WaitTask)
 }
 impl TaskType {
-    fn spawn_with_task(&self, commands: &mut Commands) -> Entity {
+    pub fn spawn_with_task(&self, commands: &mut Commands) -> Entity {
         match &self {
             TaskType::Spawn(data)   => {commands.spawn(*data).id()}
             TaskType::Despawn(data) => {commands.spawn(*data).id()}
             TaskType::Move(data)    => {commands.spawn(*data).id()}
             TaskType::Rotate(data)  => {commands.spawn(*data).id()}
-            TaskType::Wait(data)    => {commands.spawn(*data).id()}
+            TaskType::Wait(data)    => {commands.spawn(data.clone()).id()}
+        }
+    }
+    pub fn add_task(&self, commands: &mut Commands, entity: &Entity) {
+        match &self {
+            TaskType::Spawn(data)   => {commands.entity(*entity).insert(*data);}
+            TaskType::Despawn(data) => {commands.entity(*entity).insert(*data);}
+            TaskType::Move(data)    => {commands.entity(*entity).insert(*data);}
+            TaskType::Rotate(data)  => {commands.entity(*entity).insert(*data);}
+            TaskType::Wait(data)    => {commands.entity(*entity).insert(data.clone());}
         }
     }
 }
@@ -82,158 +78,47 @@ impl JobTasks {
     pub fn start(&mut self, commands: &mut Commands) -> Entity {
         let current_task = &self.data[&self.current_task_id];
         let entity = current_task.spawn_with_task(commands);
-        // self.statuses.get_mut(&self.current_task_id) = TaskStatus::Done;
+        self.set_current_status(TaskStatus::Active);
         return entity;
-
     }
 
-    pub fn next_task(&mut self) {
-        let mut current_task_status = self.statuses[&self.current_task_id];
-        match current_task_status {
-            TaskStatus::Done => {
+    pub fn next_task(&mut self) -> &TaskType {
+        match self.get_current_status() {
+            &TaskStatus::Done => {
                 // Should be only if loop was requested to close
                 self.current_task_id += 1;
-                current_task_status = TaskStatus::ToDo;
+                self.set_current_status(TaskStatus::ToDo);
+                return self.get_current();
             }
-            TaskStatus::Active => {
+            &TaskStatus::Active => {
+                self.set_current_status(TaskStatus::Done);
                 self.current_task_id += 1;
-                current_task_status = TaskStatus::ToDo;
+                self.set_current_status(TaskStatus::ToDo);
+                return self.get_current();
             }
-            TaskStatus::ToDo => {
+            &TaskStatus::ToDo => {
                 // When the loop task finished
-                // self.data[self.current].task_status = TaskStatus::Done;
-                // self.current += 1;
-                // self.data[self.current].task_status = TaskStatus::ToDo;
+                self.set_current_status(TaskStatus::Done);
+                self.current_task_id += 1;
+                self.set_current_status(TaskStatus::ToDo);
+                return self.get_current();
             }
             _ => {
-                // panic!("Not supposed to happen {:?}", current_task )
+                panic!("Not supposed to happen {:?}", self.current_task_id )
             }
         }
     }
-
 
     pub fn get_current(&self) -> &TaskType {
         &self.data[&self.current_task_id]
     }
-    pub fn set_current_active(&mut self) {
-        // self.current_task_status = TaskStatus::Active;
+    pub fn set_current_status(&mut self, status: TaskStatus) {
+        self.statuses.insert(self.current_task_id, status);
+    }
+    pub fn get_current_status(&mut self) -> &TaskStatus {
+        self.statuses.get(&self.current_task_id).unwrap()
     }
 }
-
-
-/* 
-impl JobTasks {
-    pub fn new(tasks: &Vec<Task>, fails: &Option<Vec<Task>>) -> Self {
-        let mut tsks = Tasks{data: tasks.clone(), current: 0, pause: false};
-        tsks.data[0].task_status = TaskStatus::ToDo;
-        return tsks;
-    }
-
-    pub fn new_after_spawn(tasks: &Vec<Task>, fails: &Option<Vec<Task>>) -> Self {
-        let mut tsks = Tasks{data: tasks.clone(), current: 1, pause: false};
-        tsks.data[0].task_status = TaskStatus::Done;
-        tsks.data[1].task_status = TaskStatus::ToDo;
-        return tsks;
-    }
-
-    pub fn new_without_spawn(tasks: &Vec<Task>, fails: &Option<Vec<Task>>) -> Self {
-        let mut tsks = Tasks{data: tasks.clone(), current: 0, pause: false};
-        tsks.data[0].task_status = TaskStatus::ToDo;
-        return tsks;
-    }
-
-    pub fn set_current_active(&mut self) {
-        self.data[self.current].task_status = TaskStatus::Active;
-    }
-    pub fn pause(&mut self){
-        self.pause = true;
-    }
-    pub fn unpause(&mut self){
-        self.pause = false;
-    }
-
-    pub fn set_current_loop(&mut self, steps: usize) {
-        if self.data[self.current].task_status == TaskStatus::Done {
-            return; // For the forever loops
-        }
-
-        if let TaskType::LoopLastNStepsKTimes((_n, k)) = &mut self.data[self.current].task_type {
-            *k -= 1;
-        }
-
-        self.data[self.current].task_status = TaskStatus::InLoop(steps);
-        
-    }
-
-    pub fn fail_task(&mut self){
-        self.data[self.current].task_status = TaskStatus::Fail;
-        if let Some(fails) = &self.fails {
-            self.data = fails.to_vec();
-            self.current = 0;
-            self.data[self.current].task_status = TaskStatus::ToDo;
-        } else {
-            self.data = vec![Task::despawn_task()];
-            self.current = 0;
-            self.data[self.current].task_status = TaskStatus::ToDo;
-        }
-    }
-    pub fn next_task_close_loop(&mut self) {
-
-        let mut next_loop_index: Option<usize> = None;
-        for (index, task) in self.data.iter().enumerate(){
-            if index <= self.current {
-                continue; // not important anymore
-            }
-            if !task.task_type.is_loop() {
-                continue; // Searching for next loop
-            }
-            next_loop_index = Some(index);
-            break;
-        }
-        if let Some(loop_index) = next_loop_index {
-            self.current = loop_index;
-            self.data[self.current].task_status = TaskStatus::Done;
-        } else {
-            panic!("Asks for closing loop, but there is no loop to close?");
-        }
-    }
-
-    pub fn next_task(&mut self) {
-        let current_task = &self.data[self.current];
-        match current_task.task_status {
-            TaskStatus::Done => {
-                // Should be only if loop was requested to close
-                self.current += 1;
-                self.data[self.current].task_status = TaskStatus::ToDo;
-            }
-            TaskStatus::Active => {
-                self.data[self.current].task_status = TaskStatus::Done;
-                self.current += 1;
-                self.data[self.current].task_status = TaskStatus::ToDo;
-            }
-            TaskStatus::InLoop(steps) => {
-                for i in 0..=steps {
-                    self.data[self.current-i].task_status = TaskStatus::Waiting;
-                }
-                self.current -= steps;
-                self.data[self.current].task_status = TaskStatus::ToDo;
-            }
-            TaskStatus::ToDo => {
-                // When the loop task finished
-                self.data[self.current].task_status = TaskStatus::Done;
-                self.current += 1;
-                self.data[self.current].task_status = TaskStatus::ToDo;
-            }
-            _ => {panic!("Not supposed to happen {:?}", current_task )}
-        }
-    }
-}
-*/
-
-
-
-
-
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum TaskStatus {
@@ -249,17 +134,140 @@ pub enum TaskStatus {
 // Define component for each task
 
 #[derive(Component, Clone, Copy)]
-pub struct SpawnTask;
+pub struct SpawnTask {
+    pub color:  Color,
+    pub loc:    Vec3
+}
 
 #[derive(Component, Clone, Copy)]
 pub struct DespawnTask;
 
 #[derive(Component, Clone, Copy)]
-pub struct MoveTask;
+pub struct MoveTask {
+    pub source:         Vec3,
+    pub target:         Vec3,
+}
 
 #[derive(Component, Clone, Copy)]
 pub struct RotateTask;
 
-#[derive(Component, Clone, Copy)]
-pub struct WaitTask;
+#[derive(Component, Clone)]
+pub struct WaitTask {
+    pub schedule: JobSchedule
+}
 
+// Task systems
+
+fn spawn_task(
+    mut commands:   Commands,
+    mut jobs:       ResMut<Jobs>,
+    tasks:          Query<(Entity, &SpawnTask)>,
+    mut meshes:     ResMut<Assets<Mesh>>,
+    mut materials:  ResMut<Assets<ColorMaterial>>,
+){
+
+    for (task_entity, spawn_task) in tasks.iter(){
+        info!("spawn task {:?}", task_entity);
+
+        commands.entity(task_entity).insert(
+            MaterialMesh2dBundle {
+                mesh: meshes.add(Rectangle::from_size(Vec2 { x: 100.0, y: 100.0 })).into(),
+                transform: Transform::from_translation(spawn_task.loc),
+                material: materials.add(spawn_task.color),
+                ..default()}
+        );
+
+        commands.entity(task_entity).remove::<SpawnTask>();
+        jobs.next_task(&mut commands, &task_entity);
+    }
+}
+
+
+fn wait_task_time(mut commands:   Commands,
+                  mut jobs:       ResMut<Jobs>,
+                  time:           Res<Time>,
+                  mut tasks:      Query<(Entity, &mut WaitTask)>,){
+
+    for (task_entity, mut wait_task) in tasks.iter_mut(){
+
+        info!("wait taks: {:?}", task_entity);
+
+        match &mut wait_task.schedule {
+            JobSchedule::RealDelay(delay) => {
+                if *delay > 0.0 {
+                    *delay -= time.delta_seconds();
+                } else {
+                    commands.entity(task_entity).remove::<WaitTask>();
+                    jobs.next_task(&mut commands, &task_entity);
+                }
+            }
+            _ => {}
+        }
+    }
+}
+
+
+pub fn wait_idle_calendar(mut commands:     Commands,
+                          mut jobs:         ResMut<Jobs>,
+                          calendar:         Res<Calendar>,
+                          mut idle_cars:    Query<(Entity, &mut WaitTask)>){
+
+    for (task_entity, mut wait_task) in idle_cars.iter_mut(){
+        match &mut wait_task.schedule {
+                JobSchedule::Cron(cron) => {
+                    if cron.hours.as_ref().unwrap().contains(&calendar.get_current_hour()) && 
+                       cron.days_week.as_ref().unwrap().contains(&calendar.get_current_weekday()){
+
+                        commands.entity(task_entity).remove::<WaitTask>();
+                        jobs.next_task(&mut commands, &task_entity);
+
+                    }
+                 }
+            
+                 JobSchedule::Delay(delay) => {
+                    if *delay > 0 {
+                        *delay -= 1;
+                    } else {
+                        commands.entity(task_entity).remove::<WaitTask>();
+                        jobs.next_task(&mut commands, &task_entity);
+                    }
+                }
+            
+                _=> {}   
+        }
+    }
+
+}
+
+fn move_task(mut commands:   Commands,
+             mut jobs:       ResMut<Jobs>,
+             time:           Res<Time>,
+             mut tasks:      Query<(Entity, &mut Transform, &mut MoveTask)>,){
+
+    let speed = 200.0;
+    for (task_entity, mut transform, move_task) in tasks.iter_mut(){
+
+        let angle: f32 = get_direction(&transform.translation.xy(), &move_task.target.xy());
+        let dist: f32 = get_distance_manhattan(&transform.translation.xy(), &move_task.target.xy());
+        let local_speed = speed*time.delta_seconds()*1.0;
+        if local_speed > dist {
+            commands.entity(task_entity).remove::<MoveTask>();
+            jobs.next_task(&mut commands, &task_entity);
+        } else {
+            // transform.look_at(move_task.target, Vec3::Z);
+            transform.translation.x += local_speed * cosf(angle);
+            transform.translation.y += local_speed * sinf(angle);     
+        }
+
+    }
+
+}
+
+
+pub fn get_direction(source_xy: &Vec2, target_xy: &Vec2) -> f32 {
+    return atan2f(target_xy.y - source_xy.y, target_xy.x - source_xy.x);
+}
+
+pub fn get_distance_manhattan(source: &Vec2, target: &Vec2) -> f32 {
+    return fabsf(target.x - source.x) + fabsf(target.y - source.y);
+}
