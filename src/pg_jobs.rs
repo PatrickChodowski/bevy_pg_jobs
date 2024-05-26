@@ -85,7 +85,7 @@ impl Jobs {
     fn init(active: bool) -> Self {
         Self {active, data: Vec::new()}
     }
-    pub fn upsert(&mut self, job: Job) {
+    pub fn add(&mut self, job: Job) {
         self.data.push(job); // This allows for multiple jobs per entity :o
     }
 
@@ -119,13 +119,18 @@ impl Jobs {
             panic!("no entity {:?} in jobs", task_entity);
         }
     }
-
-    // pub fn upsert(&mut self, entity: Entity, job: Job) {
-    //     self.data.insert(entity, job);
-    // }
+    pub fn index(&self, entity: Entity) -> Option<usize> {
+        return self.data.iter().position(|x| x.entity == Some(entity));
+    }
+    pub fn upsert(&mut self, entity: Entity, job: Job) {
+        if let Some(index) = self.index(entity){
+            self.data[index] = job;
+        } else {
+            self.data.push(job);
+        }
+    }
     pub fn remove(&mut self, entity: &Entity) {
-        // self.data.remove(entity);
-        todo!();
+        self.data.retain(|x| x.entity != Some(*entity))
     }
     pub fn activate(&mut self) {
         self.active = true;

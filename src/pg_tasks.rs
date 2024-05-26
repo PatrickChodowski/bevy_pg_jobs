@@ -20,6 +20,9 @@ impl Plugin for TasksPlugin {
                               wait_idle_calendar.run_if(on_event::<CalendarNewHourEvent>()),
                               move_task,
                               rotate_task,
+                              teleport_task,
+                              hide_task,
+                              show_task,
                               despawn_task
                             ))
         ;
@@ -300,7 +303,6 @@ fn rotate_task(mut commands:   Commands,
 
     let ang_speed = 0.05;
     for (task_entity, mut transform, rotate_task) in tasks.iter_mut(){
-
         let angle: f32 = transform.rotation.to_euler(EulerRot::XYZ).2.to_degrees();
         if angle < rotate_task.angle {
             transform.rotate_z(ang_speed);
@@ -309,9 +311,41 @@ fn rotate_task(mut commands:   Commands,
             jobs.next_task(&mut commands, &task_entity);
         }
     }
-
 }
 
+fn teleport_task(mut commands:   Commands,
+                 mut jobs:       ResMut<Jobs>,
+                 mut tasks:      Query<(Entity, &mut Transform, &TeleportTask)>){
+
+    for (task_entity, mut transform, teleport_task) in tasks.iter_mut(){
+        transform.translation = teleport_task.loc;
+        commands.entity(task_entity).remove::<TeleportTask>();
+        jobs.next_task(&mut commands, &task_entity);
+    }
+    
+}
+
+fn show_task(mut commands:   Commands,
+             mut jobs:       ResMut<Jobs>,
+             mut tasks:      Query<(Entity, &mut Visibility), With<ShowTask>>){
+
+    for (task_entity, mut vis) in tasks.iter_mut(){
+        *vis = Visibility::Inherited;
+        commands.entity(task_entity).remove::<ShowTask>();
+        jobs.next_task(&mut commands, &task_entity);
+    }
+}
+
+fn hide_task(mut commands:   Commands,
+             mut jobs:       ResMut<Jobs>,
+             mut tasks:      Query<(Entity, &mut Visibility), With<HideTask>>){
+
+    for (task_entity, mut vis) in tasks.iter_mut(){
+        *vis = Visibility::Hidden;
+        commands.entity(task_entity).remove::<HideTask>();
+        jobs.next_task(&mut commands, &task_entity);
+    }
+}
 
 fn despawn_task(
     mut commands:   Commands,

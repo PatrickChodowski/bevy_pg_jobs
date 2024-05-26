@@ -8,5 +8,8 @@ pub mod prelude {
 }
 
 pub mod tasks {
-    pub use crate::pg_tasks::{TaskType, SpawnTask, DespawnTask, RotateTask, MoveTask, WaitTask};
+    pub use crate::pg_tasks::{TaskType, SpawnTask, DespawnTask, 
+                              RotateTask, MoveTask, WaitTask,
+                              TeleportTask, HideTask, ShowTask
+                            };
 }
