@@ -35,7 +35,7 @@ impl Plugin for TasksPlugin {
 
 // Fill it up with the tasks for the game
 #[derive(Component, Clone)]
-pub enum TaskType {
+pub enum Task {
     Spawn(SpawnTask),
     Despawn(DespawnTask),
     Move(MoveTask),
@@ -46,31 +46,31 @@ pub enum TaskType {
     Teleport(TeleportTask),
     Decision(DecisionTask)
 }
-impl TaskType {
+impl Task {
     pub fn spawn_with_task(&self, commands: &mut Commands) -> Entity {
         match &self {
-            TaskType::Spawn(data)       => {commands.spawn(*data).id()}
-            TaskType::Despawn(data)     => {commands.spawn(*data).id()}
-            TaskType::Move(data)        => {commands.spawn(*data).id()}
-            TaskType::Rotate(data)      => {commands.spawn(*data).id()}
-            TaskType::Wait(data)        => {commands.spawn(data.clone()).id()}
-            TaskType::Hide(data)        => {commands.spawn(*data).id()}
-            TaskType::Show(data)        => {commands.spawn(*data).id()}
-            TaskType::Teleport(data)    => {commands.spawn(*data).id()}
-            TaskType::Decision(data)    => {commands.spawn(*data).id()}
+            Task::Spawn(data)       => {commands.spawn(*data).id()}
+            Task::Despawn(data)     => {commands.spawn(*data).id()}
+            Task::Move(data)        => {commands.spawn(*data).id()}
+            Task::Rotate(data)      => {commands.spawn(*data).id()}
+            Task::Wait(data)        => {commands.spawn(data.clone()).id()}
+            Task::Hide(data)        => {commands.spawn(*data).id()}
+            Task::Show(data)        => {commands.spawn(*data).id()}
+            Task::Teleport(data)    => {commands.spawn(*data).id()}
+            Task::Decision(data)    => {commands.spawn(*data).id()}
         }
     }
     pub fn add_task(&self, commands: &mut Commands, entity: &Entity) {
         match &self {
-            TaskType::Spawn(data)    => {commands.entity(*entity).insert(*data);}
-            TaskType::Despawn(data)  => {commands.entity(*entity).insert(*data);}
-            TaskType::Move(data)     => {commands.entity(*entity).insert(*data);}
-            TaskType::Rotate(data)   => {commands.entity(*entity).insert(*data);}
-            TaskType::Wait(data)     => {commands.entity(*entity).insert(data.clone());}
-            TaskType::Hide(data)     => {commands.entity(*entity).insert(*data);}
-            TaskType::Show(data)     => {commands.entity(*entity).insert(*data);}
-            TaskType::Teleport(data) => {commands.entity(*entity).insert(*data);}
-            TaskType::Decision(data) => {commands.entity(*entity).insert(*data);}
+            Task::Spawn(data)    => {commands.entity(*entity).insert(*data);}
+            Task::Despawn(data)  => {commands.entity(*entity).insert(*data);}
+            Task::Move(data)     => {commands.entity(*entity).insert(*data);}
+            Task::Rotate(data)   => {commands.entity(*entity).insert(*data);}
+            Task::Wait(data)     => {commands.entity(*entity).insert(data.clone());}
+            Task::Hide(data)     => {commands.entity(*entity).insert(*data);}
+            Task::Show(data)     => {commands.entity(*entity).insert(*data);}
+            Task::Teleport(data) => {commands.entity(*entity).insert(*data);}
+            Task::Decision(data) => {commands.entity(*entity).insert(*data);}
         }
     }
 }
@@ -81,7 +81,7 @@ pub struct TaskData {
     pub id:     u32,
     pub next:   Option<u32>,
     pub status: TaskStatus,
-    pub task:   TaskType  
+    pub task:   Task  
 }
 impl Default for TaskData {
     fn default() -> Self {
@@ -89,16 +89,16 @@ impl Default for TaskData {
             id: SPAWN_TASK_ID, 
             next: None, 
             status: TaskStatus::Waiting, 
-            task: TaskType::Despawn(DespawnTask)
+            task: Task::Despawn(DespawnTask)
         }
     }
 }
 
 impl TaskData {
-    pub fn new(id: u32, next: Option<u32>, task: TaskType) -> Self {
-        TaskData{id, next, task, status: TaskStatus::Waiting}
+    pub fn new(id: u32, next: u32, task: Task) -> Self {
+        TaskData{id, next: Some(next), task, status: TaskStatus::Waiting}
     }
-    pub fn idt(id: u32, task: TaskType) -> Self {
+    pub fn idt(id: u32, task: Task) -> Self {
         TaskData{id, task, ..default()}
     }
 }
@@ -123,35 +123,44 @@ impl JobTasks {
         self.data.insert(task_data.id, task_data);
     }
 
+    pub fn get_next_id(&mut self) -> u32 {
+        let current_task_data = self.data.get(&self.current_task_id).unwrap();
+        if let Some(next_task_id) = current_task_data.next {
+            return next_task_id;
+        } else {
+            return current_task_data.id + 1;
+        }
+    }
+
     pub fn start(&mut self, commands: &mut Commands) -> Entity {
         let current_task = &self.data.get(&self.current_task_id).unwrap();
         let entity = current_task.task.spawn_with_task(commands);
         self.set_current_status(TaskStatus::Active);
         return entity;
     }
-    pub fn set_task(&mut self, next_task_id: u32) -> &TaskType {
+    pub fn set_task(&mut self, next_task_id: u32) -> &Task {
         self.current_task_id = next_task_id;
         self.set_current_status(TaskStatus::ToDo);
         return self.get_current();
     }
-    pub fn next_task(&mut self) -> &TaskType {
+    pub fn next_task(&mut self) -> &Task {
         match self.get_current_status() {
             &TaskStatus::Done => {
                 // Should be only if loop was requested to close
-                self.current_task_id += 1;
+                self.current_task_id = self.get_next_id();
                 self.set_current_status(TaskStatus::ToDo);
                 return self.get_current();
             }
             &TaskStatus::Active => {
                 self.set_current_status(TaskStatus::Done);
-                self.current_task_id += 1;
+                self.current_task_id = self.get_next_id();
                 self.set_current_status(TaskStatus::ToDo);
                 return self.get_current();
             }
             &TaskStatus::ToDo => {
                 // When the loop task finished
                 self.set_current_status(TaskStatus::Done);
-                self.current_task_id += 1;
+                self.current_task_id = self.get_next_id();
                 self.set_current_status(TaskStatus::ToDo);
                 return self.get_current();
             }
@@ -160,8 +169,12 @@ impl JobTasks {
             }
         }
     }
-    pub fn get_current(&self) -> &TaskType {
-        &self.data[&self.current_task_id].task
+    pub fn get_current(&self) -> &Task {
+        if let Some(task_data) = self.data.get(&self.current_task_id) {
+            return &task_data.task;
+        } else {
+            panic!("no task for {}", self.current_task_id);
+        }
     }
     pub fn set_current_status(&mut self, status: TaskStatus) {
         if let Some(task_data) = self.data.get_mut(&self.current_task_id){
