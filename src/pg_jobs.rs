@@ -123,9 +123,10 @@ impl Jobs {
     // pub fn upsert(&mut self, entity: Entity, job: Job) {
     //     self.data.insert(entity, job);
     // }
-    // pub fn remove(&mut self, entity: &Entity) {
-    //     self.data.remove(entity);
-    // }
+    pub fn remove(&mut self, entity: &Entity) {
+        // self.data.remove(entity);
+        todo!();
+    }
     pub fn activate(&mut self) {
         self.active = true;
     }

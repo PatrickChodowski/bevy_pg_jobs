@@ -18,7 +18,9 @@ impl Plugin for TasksPlugin {
         .add_systems(Update, (spawn_task, 
                               wait_task_time, 
                               wait_idle_calendar.run_if(on_event::<CalendarNewHourEvent>()),
-                              move_task
+                              move_task,
+                              rotate_task,
+                              despawn_task
                             ))
         ;
     }
@@ -31,25 +33,34 @@ pub enum TaskType {
     Despawn(DespawnTask),
     Move(MoveTask),
     Rotate(RotateTask),
-    Wait(WaitTask)
+    Wait(WaitTask),
+    Hide(HideTask),
+    Show(ShowTask),
+    Teleport(TeleportTask)
 }
 impl TaskType {
     pub fn spawn_with_task(&self, commands: &mut Commands) -> Entity {
         match &self {
-            TaskType::Spawn(data)   => {commands.spawn(*data).id()}
-            TaskType::Despawn(data) => {commands.spawn(*data).id()}
-            TaskType::Move(data)    => {commands.spawn(*data).id()}
-            TaskType::Rotate(data)  => {commands.spawn(*data).id()}
-            TaskType::Wait(data)    => {commands.spawn(data.clone()).id()}
+            TaskType::Spawn(data)       => {commands.spawn(*data).id()}
+            TaskType::Despawn(data)     => {commands.spawn(*data).id()}
+            TaskType::Move(data)        => {commands.spawn(*data).id()}
+            TaskType::Rotate(data)      => {commands.spawn(*data).id()}
+            TaskType::Wait(data)        => {commands.spawn(data.clone()).id()}
+            TaskType::Hide(data)        => {commands.spawn(*data).id()}
+            TaskType::Show(data)        => {commands.spawn(*data).id()}
+            TaskType::Teleport(data)    => {commands.spawn(*data).id()}
         }
     }
     pub fn add_task(&self, commands: &mut Commands, entity: &Entity) {
         match &self {
-            TaskType::Spawn(data)   => {commands.entity(*entity).insert(*data);}
-            TaskType::Despawn(data) => {commands.entity(*entity).insert(*data);}
-            TaskType::Move(data)    => {commands.entity(*entity).insert(*data);}
-            TaskType::Rotate(data)  => {commands.entity(*entity).insert(*data);}
-            TaskType::Wait(data)    => {commands.entity(*entity).insert(data.clone());}
+            TaskType::Spawn(data)    => {commands.entity(*entity).insert(*data);}
+            TaskType::Despawn(data)  => {commands.entity(*entity).insert(*data);}
+            TaskType::Move(data)     => {commands.entity(*entity).insert(*data);}
+            TaskType::Rotate(data)   => {commands.entity(*entity).insert(*data);}
+            TaskType::Wait(data)     => {commands.entity(*entity).insert(data.clone());}
+            TaskType::Hide(data)     => {commands.entity(*entity).insert(*data);}
+            TaskType::Show(data)     => {commands.entity(*entity).insert(*data);}
+            TaskType::Teleport(data) => {commands.entity(*entity).insert(*data);}
         }
     }
 }
@@ -149,12 +160,26 @@ pub struct MoveTask {
 }
 
 #[derive(Component, Clone, Copy)]
-pub struct RotateTask;
+pub struct RotateTask {
+    pub angle:      f32
+}
 
 #[derive(Component, Clone)]
 pub struct WaitTask {
     pub schedule: JobSchedule
 }
+
+#[derive(Component, Clone, Copy)]
+pub struct HideTask;
+
+#[derive(Component, Clone, Copy)]
+pub struct ShowTask;
+
+#[derive(Component, Clone, Copy)]
+pub struct TeleportTask {
+    pub loc: Vec3
+}
+
 
 // Task systems
 
@@ -167,7 +192,6 @@ fn spawn_task(
 ){
 
     for (task_entity, spawn_task) in tasks.iter(){
-        info!("spawn task {:?}", task_entity);
 
         commands.entity(task_entity).insert(
             MaterialMesh2dBundle {
@@ -189,8 +213,6 @@ fn wait_task_time(mut commands:   Commands,
                   mut tasks:      Query<(Entity, &mut WaitTask)>,){
 
     for (task_entity, mut wait_task) in tasks.iter_mut(){
-
-        info!("wait taks: {:?}", task_entity);
 
         match &mut wait_task.schedule {
             JobSchedule::RealDelay(delay) => {
@@ -249,7 +271,7 @@ fn move_task(mut commands:   Commands,
 
         let angle: f32 = get_direction(&transform.translation.xy(), &move_task.target.xy());
         let dist: f32 = get_distance_manhattan(&transform.translation.xy(), &move_task.target.xy());
-        let local_speed = speed*time.delta_seconds()*1.0;
+        let local_speed = speed*time.delta_seconds();
         if local_speed > dist {
             commands.entity(task_entity).remove::<MoveTask>();
             jobs.next_task(&mut commands, &task_entity);
@@ -271,3 +293,35 @@ pub fn get_direction(source_xy: &Vec2, target_xy: &Vec2) -> f32 {
 pub fn get_distance_manhattan(source: &Vec2, target: &Vec2) -> f32 {
     return fabsf(target.x - source.x) + fabsf(target.y - source.y);
 }
+
+fn rotate_task(mut commands:   Commands,
+               mut jobs:       ResMut<Jobs>,
+               mut tasks:      Query<(Entity, &mut Transform, &RotateTask)>,){
+
+    let ang_speed = 0.05;
+    for (task_entity, mut transform, rotate_task) in tasks.iter_mut(){
+
+        let angle: f32 = transform.rotation.to_euler(EulerRot::XYZ).2.to_degrees();
+        if angle < rotate_task.angle {
+            transform.rotate_z(ang_speed);
+        } else {
+            commands.entity(task_entity).remove::<RotateTask>();
+            jobs.next_task(&mut commands, &task_entity);
+        }
+    }
+
+}
+
+
+fn despawn_task(
+    mut commands:   Commands,
+    mut jobs:       ResMut<Jobs>,
+    tasks:          Query<Entity, With<DespawnTask>>){
+
+    for task_entity in tasks.iter(){
+        commands.entity(task_entity).despawn_recursive();
+        jobs.remove(&task_entity);
+    }
+
+}
+
