@@ -222,7 +222,7 @@ impl Job {
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub enum JobSchedule {
-    OnDemand,
+    // OnDemand,       
     Instant,
     RealDelay(f32),      // Real time delay         
     Cron(Cron),

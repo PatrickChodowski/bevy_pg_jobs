@@ -10,6 +10,9 @@ use bevy_pg_calendar::prelude::{Calendar, CalendarNewHourEvent};
 use crate::pg_jobs::Jobs;
 use crate::prelude::JobSchedule;
 
+pub const SPAWN_TASK_ID:   u32 = 0;
+pub const DESPAWN_TASK_ID: u32 = 1000;
+
 pub struct TasksPlugin;
 
 impl Plugin for TasksPlugin {
@@ -23,11 +26,20 @@ impl Plugin for TasksPlugin {
                               teleport_task,
                               hide_task,
                               show_task,
+                              decision_task,
                               despawn_task
                             ))
         ;
     }
 }
+
+// WaitForEvent     Task
+// SendEvent        Task
+// InsertComponent  Task
+// LoopNKTask
+// LoopNTask
+// Decision task
+
 
 // Fill it up with the tasks for the game
 #[derive(Component, Clone)]
@@ -39,7 +51,8 @@ pub enum TaskType {
     Wait(WaitTask),
     Hide(HideTask),
     Show(ShowTask),
-    Teleport(TeleportTask)
+    Teleport(TeleportTask),
+    Decision(DecisionTask)
 }
 impl TaskType {
     pub fn spawn_with_task(&self, commands: &mut Commands) -> Entity {
@@ -52,6 +65,7 @@ impl TaskType {
             TaskType::Hide(data)        => {commands.spawn(*data).id()}
             TaskType::Show(data)        => {commands.spawn(*data).id()}
             TaskType::Teleport(data)    => {commands.spawn(*data).id()}
+            TaskType::Decision(data)    => {commands.spawn(*data).id()}
         }
     }
     pub fn add_task(&self, commands: &mut Commands, entity: &Entity) {
@@ -64,6 +78,7 @@ impl TaskType {
             TaskType::Hide(data)     => {commands.entity(*entity).insert(*data);}
             TaskType::Show(data)     => {commands.entity(*entity).insert(*data);}
             TaskType::Teleport(data) => {commands.entity(*entity).insert(*data);}
+            TaskType::Decision(data) => {commands.entity(*entity).insert(*data);}
         }
     }
 }
@@ -85,8 +100,15 @@ impl JobTasks {
             current_task_id:        0,
         }
     }
+
     pub fn add(&mut self, id: u32, task: TaskType) {
         self.data.insert(id, task);
+
+        if id == SPAWN_TASK_ID {
+            self.statuses.insert(id, TaskStatus::ToDo);
+        } else {
+            self.statuses.insert(id, TaskStatus::Waiting);
+        }
     }
 
     pub fn start(&mut self, commands: &mut Commands) -> Entity {
@@ -183,6 +205,11 @@ pub struct TeleportTask {
     pub loc: Vec3
 }
 
+#[derive(Component, Clone, Copy)]
+pub struct DecisionTask {
+    pub opt1: u32,
+    pub opt2: u32
+}
 
 // Task systems
 
@@ -248,7 +275,6 @@ pub fn wait_idle_calendar(mut commands:     Commands,
 
                     }
                  }
-            
                  JobSchedule::Delay(delay) => {
                     if *delay > 0 {
                         *delay -= 1;
@@ -257,7 +283,6 @@ pub fn wait_idle_calendar(mut commands:     Commands,
                         jobs.next_task(&mut commands, &task_entity);
                     }
                 }
-            
                 _=> {}   
         }
     }
@@ -346,6 +371,19 @@ fn hide_task(mut commands:   Commands,
         jobs.next_task(&mut commands, &task_entity);
     }
 }
+
+// Example Decision task
+fn decision_task(mut commands:   Commands,
+                 mut jobs:       ResMut<Jobs>,
+                 tasks:          Query<(Entity, &DecisionTask)>){
+
+    for (task_entity, decision_task) in tasks.iter(){
+
+    }
+
+}
+
+
 
 fn despawn_task(
     mut commands:   Commands,
