@@ -119,6 +119,9 @@ impl Jobs {
             panic!("no entity {:?} in jobs", task_entity);
         }
     }
+    pub fn jump_task(&mut self, commands: &mut Commands, task_entity: &Entity, next_task_id: u32){
+
+    }
     pub fn index(&self, entity: Entity) -> Option<usize> {
         return self.data.iter().position(|x| x.entity == Some(entity));
     }

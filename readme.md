@@ -34,4 +34,17 @@ In order to use it you need to add it to your game and edit the pg_tasks file wi
 6) Loop tasks will loop over last n tasks
 
 
+## Todo
+- wait for event task
+- send event task
+- insert component task
+- decision task
+- loop n task
+- loop nk task
+- text debug layer
+- read job from text file
+- JobCatalog example with predefined task
+- dynamic task 
+- allow prejobs if needed (maybe not needed anymore?)
+- is task status needed now?
 

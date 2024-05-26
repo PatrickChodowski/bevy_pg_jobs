@@ -2,8 +2,8 @@
 use bevy::prelude::*;
 use bevy::utils::HashMap;
 use bevy::sprite::MaterialMesh2dBundle;
+use crate::utils::{get_direction, get_distance_manhattan, get_random_range_u32, move_x, move_y};
 
-use libm::{atan2f, fabsf, cosf, sinf}; 
 
 // Crate dependencies
 use bevy_pg_calendar::prelude::{Calendar, CalendarNewHourEvent};
@@ -32,14 +32,6 @@ impl Plugin for TasksPlugin {
         ;
     }
 }
-
-// WaitForEvent     Task
-// SendEvent        Task
-// InsertComponent  Task
-// LoopNKTask
-// LoopNTask
-// Decision task
-
 
 // Fill it up with the tasks for the game
 #[derive(Component, Clone)]
@@ -305,21 +297,12 @@ fn move_task(mut commands:   Commands,
             jobs.next_task(&mut commands, &task_entity);
         } else {
             // transform.look_at(move_task.target, Vec3::Z);
-            transform.translation.x += local_speed * cosf(angle);
-            transform.translation.y += local_speed * sinf(angle);     
+            transform.translation.x += move_x(local_speed, angle);
+            transform.translation.y += move_y(local_speed, angle);    
         }
 
     }
 
-}
-
-
-pub fn get_direction(source_xy: &Vec2, target_xy: &Vec2) -> f32 {
-    return atan2f(target_xy.y - source_xy.y, target_xy.x - source_xy.x);
-}
-
-pub fn get_distance_manhattan(source: &Vec2, target: &Vec2) -> f32 {
-    return fabsf(target.x - source.x) + fabsf(target.y - source.y);
 }
 
 fn rotate_task(mut commands:   Commands,
@@ -378,7 +361,15 @@ fn decision_task(mut commands:   Commands,
                  tasks:          Query<(Entity, &DecisionTask)>){
 
     for (task_entity, decision_task) in tasks.iter(){
-
+        let random_value = get_random_range_u32(0, 100);
+        let next_task_id: u32;
+        if random_value <= 50 {
+            next_task_id = decision_task.opt1;
+        } else {
+            next_task_id = decision_task.opt2;
+        }
+        commands.entity(task_entity).remove::<DecisionTask>();
+        jobs.jump_task(&mut commands, &task_entity, next_task_id);
     }
 
 }
