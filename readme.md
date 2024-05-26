@@ -35,6 +35,8 @@ In order to use it you need to add it to your game and edit the pg_tasks file wi
 
 
 ## Todo
+- Jumping next task will not always work (only sequential). 
+- By default it will jump next task, but you can also specify next -> important in decisions and branching
 - wait for event task
 - send event task
 - insert component task

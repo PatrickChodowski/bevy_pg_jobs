@@ -75,12 +75,39 @@ impl TaskType {
     }
 }
 
+// TaskData
+#[derive(Clone)]
+pub struct TaskData {
+    pub id:     u32,
+    pub next:   Option<u32>,
+    pub status: TaskStatus,
+    pub task:   TaskType  
+}
+impl Default for TaskData {
+    fn default() -> Self {
+        TaskData{
+            id: SPAWN_TASK_ID, 
+            next: None, 
+            status: TaskStatus::Waiting, 
+            task: TaskType::Despawn(DespawnTask)
+        }
+    }
+}
+
+impl TaskData {
+    pub fn new(id: u32, next: Option<u32>, task: TaskType) -> Self {
+        TaskData{id, next, task, status: TaskStatus::Waiting}
+    }
+    pub fn idt(id: u32, task: TaskType) -> Self {
+        TaskData{id, task, ..default()}
+    }
+}
+
 
 
 // JobTasks
 pub struct JobTasks {
-    pub data:                   HashMap<u32, TaskType>,   
-    pub statuses:               HashMap<u32, TaskStatus>,  // Statues of the tasks 
+    pub data:                   HashMap<u32, TaskData>,   
     pub current_task_id:        u32,
 }
 
@@ -88,28 +115,25 @@ impl JobTasks {
     pub fn new() -> Self {
         JobTasks{
             data:                   HashMap::new(),
-            statuses:               HashMap::new(),
             current_task_id:        0,
         }
     }
 
-    pub fn add(&mut self, id: u32, task: TaskType) {
-        self.data.insert(id, task);
-
-        if id == SPAWN_TASK_ID {
-            self.statuses.insert(id, TaskStatus::ToDo);
-        } else {
-            self.statuses.insert(id, TaskStatus::Waiting);
-        }
+    pub fn add(&mut self, task_data: TaskData) {
+        self.data.insert(task_data.id, task_data);
     }
 
     pub fn start(&mut self, commands: &mut Commands) -> Entity {
-        let current_task = &self.data[&self.current_task_id];
-        let entity = current_task.spawn_with_task(commands);
+        let current_task = &self.data.get(&self.current_task_id).unwrap();
+        let entity = current_task.task.spawn_with_task(commands);
         self.set_current_status(TaskStatus::Active);
         return entity;
     }
-
+    pub fn set_task(&mut self, next_task_id: u32) -> &TaskType {
+        self.current_task_id = next_task_id;
+        self.set_current_status(TaskStatus::ToDo);
+        return self.get_current();
+    }
     pub fn next_task(&mut self) -> &TaskType {
         match self.get_current_status() {
             &TaskStatus::Done => {
@@ -136,15 +160,16 @@ impl JobTasks {
             }
         }
     }
-
     pub fn get_current(&self) -> &TaskType {
-        &self.data[&self.current_task_id]
+        &self.data[&self.current_task_id].task
     }
     pub fn set_current_status(&mut self, status: TaskStatus) {
-        self.statuses.insert(self.current_task_id, status);
+        if let Some(task_data) = self.data.get_mut(&self.current_task_id){
+            task_data.status = status;
+        }
     }
     pub fn get_current_status(&mut self) -> &TaskStatus {
-        self.statuses.get(&self.current_task_id).unwrap()
+        &self.data.get(&self.current_task_id).unwrap().status
     }
 }
 
