@@ -10,7 +10,7 @@ use bevy::log::info;
 use bevy_pg_calendar::prelude::{Calendar, CalendarNewHourEvent, Cron};
 use serde::{Deserialize, Serialize};
 
-use crate::tasks::JobTasks;
+use crate::pg_tasks::JobTasks;
 pub struct PGJobsPlugin {
     pub active: bool 
 }
@@ -107,10 +107,11 @@ impl Jobs {
     }
 }
 
-#[derive(PartialEq)]
+#[derive(PartialEq, Copy, Clone)]
 pub enum JobStatus {
     ToDo,
-    Active
+    Active,
+    Done
 }
 
 // #[derive(Clone)]
@@ -118,7 +119,7 @@ pub struct Job {
     pub entity:        Option<Entity>,    // In the beginning there might not be entity.
     pub status:        JobStatus,
     pub schedule:      JobSchedule,       // Schedule that will start the Job
-    pub tasks:         JobTasks,          // List of tasks to be performed by entity
+    pub tasks:         JobTasks,          // List of job.set_active();tasks to be performed by entity
     pub fail_task_id:  u32,               // ID of task to perform if task failed
     pub fail_job_id:   u32,               // ID of task to perform if job failed to start 
     pub active:        bool,              // Toggle to activate/deactivate single task
@@ -155,6 +156,15 @@ impl Job {
         };
         return job;
     }
+    pub fn get_status(&mut self) -> JobStatus {
+        self.status
+    }
+    pub fn set_active(&mut self){
+        self.status = JobStatus::Active;
+    }
+    pub fn set_done(&mut self){
+        self.status = JobStatus::Done;
+    }
 }
 
 
@@ -174,18 +184,18 @@ pub enum JobSchedule {
 // Update jobs. Triggers every hour from calendar.
 fn trigger_jobs_calendar(mut commands:         Commands,
                          calendar:             Res<Calendar>,
-                         jobs:                 Res<Jobs>,
+                         mut jobs:             ResMut<Jobs>,
                          mut trigger_prejob:   EventWriter<TriggerPreJobEvent>,
                          mut trigger_job:      EventWriter<TriggerJobEvent>){
 
 
-    for job in jobs.data.iter(){
+    for job in jobs.data.iter_mut(){
 
         if !job.active {
             continue;
         }
 
-        if job.status != JobStatus::ToDo {
+        if job.get_status() != JobStatus::ToDo {
             continue;
         }
 
@@ -194,14 +204,14 @@ fn trigger_jobs_calendar(mut commands:         Commands,
                 if cron.hours.as_ref().unwrap().contains(&calendar.get_current_hour()) && 
                    cron.days_week.as_ref().unwrap().contains(&calendar.get_current_weekday()){
 
-                    let entity = job.tasks.get_current().spawn_with_task(&mut commands);
+                    let entity = job.tasks.start(&mut commands);
                         
                     if job.prejob {
                         trigger_prejob.send(TriggerPreJobEvent);
                     } else {
                         trigger_job.send(TriggerJobEvent{entity});
                     }
-                    
+                    job.set_active();
                 }
              }
 
@@ -213,27 +223,28 @@ fn trigger_jobs_calendar(mut commands:         Commands,
 
 // Updates jobs on real time
 fn trigger_jobs_time(mut commands:           Commands,
-                     jobs:                   Res<Jobs>,
+                     mut jobs:               ResMut<Jobs>,
                      mut trigger_prejob:     EventWriter<TriggerPreJobEvent>,
                      mut trigger_job:        EventWriter<TriggerJobEvent>,){
 
-    for job in jobs.data.iter(){
+    for job in jobs.data.iter_mut(){
 
         if !job.active {
             continue;
         }
-        if job.status != JobStatus::ToDo {
+        if job.get_status() != JobStatus::ToDo {
             continue;
         }
 
         match &job.schedule {
             JobSchedule::Instant => {
-                let entity = job.tasks.get_current().spawn_with_task(&mut commands);
+                let entity = job.tasks.start(&mut commands);
                 if job.prejob {
                     trigger_prejob.send(TriggerPreJobEvent);
                 } else {
                     trigger_job.send(TriggerJobEvent{entity});
                 }
+                job.set_active();
             }
             _=> {}
         }

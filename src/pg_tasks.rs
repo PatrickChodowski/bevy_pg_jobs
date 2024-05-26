@@ -47,7 +47,7 @@ pub enum TaskType {
     Wait(WaitTask)
 }
 impl TaskType {
-    pub fn spawn_with_task(&self, commands: &mut Commands) -> Entity {
+    fn spawn_with_task(&self, commands: &mut Commands) -> Entity {
         match &self {
             TaskType::Spawn(data)   => {commands.spawn(*data).id()}
             TaskType::Despawn(data) => {commands.spawn(*data).id()}
@@ -62,27 +62,61 @@ impl TaskType {
 
 // JobTasks
 pub struct JobTasks {
-    pub data:                   HashMap<u32, TaskType>,
+    pub data:                   HashMap<u32, TaskType>,   
+    pub statuses:               HashMap<u32, TaskStatus>,  // Statues of the tasks 
     pub current_task_id:        u32,
-    pub current_task_status:    TaskStatus
 }
 
 impl JobTasks {
     pub fn new() -> Self {
         JobTasks{
             data:                   HashMap::new(),
+            statuses:               HashMap::new(),
             current_task_id:        0,
-            current_task_status:    TaskStatus::ToDo
         }
     }
     pub fn add(&mut self, id: u32, task: TaskType) {
         self.data.insert(id, task);
     }
+
+    pub fn start(&mut self, commands: &mut Commands) -> Entity {
+        let current_task = &self.data[&self.current_task_id];
+        let entity = current_task.spawn_with_task(commands);
+        // self.statuses.get_mut(&self.current_task_id) = TaskStatus::Done;
+        return entity;
+
+    }
+
+    pub fn next_task(&mut self) {
+        let mut current_task_status = self.statuses[&self.current_task_id];
+        match current_task_status {
+            TaskStatus::Done => {
+                // Should be only if loop was requested to close
+                self.current_task_id += 1;
+                current_task_status = TaskStatus::ToDo;
+            }
+            TaskStatus::Active => {
+                self.current_task_id += 1;
+                current_task_status = TaskStatus::ToDo;
+            }
+            TaskStatus::ToDo => {
+                // When the loop task finished
+                // self.data[self.current].task_status = TaskStatus::Done;
+                // self.current += 1;
+                // self.data[self.current].task_status = TaskStatus::ToDo;
+            }
+            _ => {
+                // panic!("Not supposed to happen {:?}", current_task )
+            }
+        }
+    }
+
+
     pub fn get_current(&self) -> &TaskType {
         &self.data[&self.current_task_id]
     }
     pub fn set_current_active(&mut self) {
-        self.current_task_status = TaskStatus::Active;
+        // self.current_task_status = TaskStatus::Active;
     }
 }
 
@@ -201,12 +235,12 @@ impl JobTasks {
 
 
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum TaskStatus {
     ToDo,
     Waiting,
     Active,
-    InLoop(usize), // Number of task steps to repeat every time
+    // InLoop(usize), // Number of task steps to repeat every time
     Done,
     Fail
 }
