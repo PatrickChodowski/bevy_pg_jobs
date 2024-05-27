@@ -36,8 +36,6 @@ impl Plugin for PGJobsPlugin {
         .add_systems(Update,    init_jobs.run_if(if_jobs_active.and_then(on_event::<TriggerJobEvent>())))
 
         // .add_systems(Update,    init_pre_jobs.run_if(on_event::<TriggerPrejob>()))
-        // .add_systems(Update,    update_tasks.run_if(if_active)
-        //                                     .after(init_jobs))
         // .add_systems(Update,    update_fail_jobs.run_if(if_active)
         //                                         .after(init_jobs))
         ;
@@ -164,6 +162,7 @@ pub struct Job {
     pub status:        JobStatus,
     pub schedule:      JobSchedule,       // Schedule that will start the Job
     pub tasks:         JobTasks,          // List of job.set_active();tasks to be performed by entity
+    pub loopk:         u32,               // Used for loops to count iterations
     pub fail_task_id:  u32,               // ID of task to perform if task failed
     pub fail_job_id:   u32,               // ID of task to perform if job failed to start 
     pub active:        bool,              // Toggle to activate/deactivate single task
@@ -177,6 +176,7 @@ impl Default for Job {
             status:         JobStatus::ToDo,
             schedule:       JobSchedule::Instant, 
             tasks:          JobTasks::new(),
+            loopk:          0,
             fail_task_id:   0,
             fail_job_id:    0,
             active:         true,
@@ -208,6 +208,7 @@ impl Job {
             entity:       None,
             status:       JobStatus::ToDo,
             tasks:        JobTasks::new(), 
+            loopk:        0,
             schedule:     JobSchedule::Instant,
             fail_job_id:  0,
             fail_task_id: 0,

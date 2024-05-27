@@ -12,5 +12,5 @@ pub mod tasks {
     pub use crate::pg_tasks::{Task, SpawnTask, DespawnTask, 
                               RotateTask, MoveTask, WaitTask,
                               TeleportTask, HideTask, ShowTask, 
-                              DecisionTask};
+                              DecisionTask, LoopTask};
 }

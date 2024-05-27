@@ -27,23 +27,21 @@ In order to use it you need to add it to your game and edit the pg_tasks file wi
     - Rotate
     - Wait
     - Decision Task 
-    - LoopKTasks (last n steps for k times)
-    - LoopTasks (last n steps till broken manually)
+    - Loop Task
 
 5) Decision tasks will make a decision and switch to some other task
-6) Loop tasks will loop over last n tasks
+6) Loop tasks will loop over tasks from the start_index to itself
+7) If the loop task doesnt have maxk specified then it needs some DecisionTask at the end of iteration to get out of the loop
 
 
 ## Todo
-- loop n task
-- loop nk task
 - wait for event task
 - send event task
 - insert component task
 - text debug layer
 - read job from text file
 - JobCatalog example with predefined task
-- dynamic task 
+- dynamic task like firetruck in cars
 - allow prejobs if needed (maybe not needed anymore?)
 - is task status needed now?
 

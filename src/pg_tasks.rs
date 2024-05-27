@@ -245,7 +245,13 @@ pub struct DecisionTask {
 
 #[derive(Component, Clone, Copy)]
 pub struct LoopTask {
-    pub start_id: u32 // Loops the tasks specified in the vector
+    pub start_id:  u32, // Loops the tasks specified in the vector
+    pub maxk:      Option<u32>
+}
+impl Default for LoopTask {
+    fn default() -> Self {
+        LoopTask{start_id: 0, maxk: None}
+    }
 }
 
 // Task systems
@@ -421,9 +427,23 @@ fn decision_task(mut commands:   Commands,
 fn loop_task(mut commands:   Commands,
              mut jobs:       ResMut<Jobs>,
              tasks:          Query<(Entity, &LoopTask)>){
+
     for (task_entity, loop_task) in tasks.iter(){
-        commands.entity(task_entity).remove::<LoopTask>();
-        jobs.jump_task(&mut commands, &task_entity, loop_task.start_id); 
+
+        if let Some(maxk) = loop_task.maxk {
+            if let Some(job) = jobs.get_mut(&task_entity){
+                // final iteration
+                if job.loopk >= maxk {
+                    job.loopk = 0;
+                    commands.entity(task_entity).remove::<LoopTask>();
+                    jobs.next_task(&mut commands, &task_entity); 
+                } else {
+                    job.loopk += 1;
+                    commands.entity(task_entity).remove::<LoopTask>();
+                    jobs.jump_task(&mut commands, &task_entity, loop_task.start_id); 
+                }
+            }
+        }
     }
 }
 
