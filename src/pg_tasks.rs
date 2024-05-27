@@ -111,8 +111,7 @@ pub struct JobTasks {
     pub current_task_id:        u32,
 }
 
-impl JobTasks {
-    pub fn new() -> Self {
+impl JobTasks { pub fn new() -> Self {
         JobTasks{
             data:                   HashMap::new(),
             current_task_id:        0,
@@ -334,7 +333,6 @@ fn move_task(mut commands:   Commands,
             commands.entity(task_entity).remove::<MoveTask>();
             jobs.next_task(&mut commands, &task_entity);
         } else {
-            // transform.look_at(move_task.target, Vec3::Z);
             transform.translation.x += move_x(local_speed, angle);
             transform.translation.y += move_y(local_speed, angle);    
         }
