@@ -122,7 +122,6 @@ impl Jobs {
     pub fn jump_task(&mut self, commands: &mut Commands, task_entity: &Entity, next_task_id: u32){
         if let Some(job) = self.get_mut(&task_entity) {
             let next_task_type = job.tasks.set_task(next_task_id);
-            info!("next task id from decision: {}", next_task_id);
             next_task_type.add_task(commands, task_entity);
         } else {
             panic!("no entity {:?} in jobs", task_entity);

@@ -27,7 +27,8 @@ impl Plugin for TasksPlugin {
                               hide_task,
                               show_task,
                               decision_task,
-                              despawn_task
+                              despawn_task,
+                              loop_task
                             ))
         ;
     }
@@ -44,7 +45,8 @@ pub enum Task {
     Hide(HideTask),
     Show(ShowTask),
     Teleport(TeleportTask),
-    Decision(DecisionTask)
+    Decision(DecisionTask),
+    Loop(LoopTask)          // Loops specified tasks till broken by decision task
 }
 impl Task {
     pub fn spawn_with_task(&self, commands: &mut Commands) -> Entity {
@@ -58,6 +60,7 @@ impl Task {
             Task::Show(data)        => {commands.spawn(*data).id()}
             Task::Teleport(data)    => {commands.spawn(*data).id()}
             Task::Decision(data)    => {commands.spawn(*data).id()}
+            Task::Loop(data)        => {commands.spawn(*data).id()}
         }
     }
     pub fn add_task(&self, commands: &mut Commands, entity: &Entity) {
@@ -71,6 +74,7 @@ impl Task {
             Task::Show(data)     => {commands.entity(*entity).insert(*data);}
             Task::Teleport(data) => {commands.entity(*entity).insert(*data);}
             Task::Decision(data) => {commands.entity(*entity).insert(*data);}
+            Task::Loop(data)     => {commands.entity(*entity).insert(*data);}
         }
     }
 }
@@ -190,7 +194,6 @@ pub enum TaskStatus {
     ToDo,
     Waiting,
     Active,
-    // InLoop(usize), // Number of task steps to repeat every time
     Done,
     Fail
 }
@@ -238,6 +241,11 @@ pub struct TeleportTask {
 pub struct DecisionTask {
     pub opt1: u32,
     pub opt2: u32
+}
+
+#[derive(Component, Clone, Copy)]
+pub struct LoopTask {
+    pub start_id: u32 // Loops the tasks specified in the vector
 }
 
 // Task systems
@@ -410,7 +418,14 @@ fn decision_task(mut commands:   Commands,
 
 }
 
-
+fn loop_task(mut commands:   Commands,
+             mut jobs:       ResMut<Jobs>,
+             tasks:          Query<(Entity, &LoopTask)>){
+    for (task_entity, loop_task) in tasks.iter(){
+        commands.entity(task_entity).remove::<LoopTask>();
+        jobs.jump_task(&mut commands, &task_entity, loop_task.start_id); 
+    }
+}
 
 fn despawn_task(
     mut commands:   Commands,

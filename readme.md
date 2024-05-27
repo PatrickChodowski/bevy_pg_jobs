@@ -27,20 +27,19 @@ In order to use it you need to add it to your game and edit the pg_tasks file wi
     - Rotate
     - Wait
     - Decision Task 
-    - Loop NK Task (last n steps for k times)
-    - Loop N Task (last n steps till broken manually)
+    - LoopKTasks (last n steps for k times)
+    - LoopTasks (last n steps till broken manually)
 
 5) Decision tasks will make a decision and switch to some other task
 6) Loop tasks will loop over last n tasks
 
 
 ## Todo
+- loop n task
+- loop nk task
 - wait for event task
 - send event task
 - insert component task
-- decision task
-- loop n task
-- loop nk task
 - text debug layer
 - read job from text file
 - JobCatalog example with predefined task
