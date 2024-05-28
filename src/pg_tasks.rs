@@ -2,10 +2,9 @@
 use bevy::prelude::*;
 use bevy::utils::HashMap;
 use bevy::sprite::MaterialMesh2dBundle;
+use serde::{Deserialize, Serialize, Deserializer, de::Error, de::Unexpected};
 use crate::utils::{get_direction, get_distance_manhattan, get_random_range_u32, move_x, move_y};
 
-
-// Crate dependencies
 use bevy_pg_calendar::prelude::{Calendar, CalendarNewHourEvent};
 use crate::pg_jobs::Jobs;
 use crate::prelude::JobSchedule;
@@ -35,7 +34,8 @@ impl Plugin for TasksPlugin {
 }
 
 // Fill it up with the tasks for the game
-#[derive(Component, Clone)]
+#[derive(Component, Clone, Serialize, Deserialize)]
+#[serde(tag = "type")]
 pub enum Task {
     Spawn(SpawnTask),
     Despawn(DespawnTask),
@@ -80,10 +80,12 @@ impl Task {
 }
 
 // TaskData
-#[derive(Clone)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct TaskData {
+    #[serde(skip_deserializing)]
     pub id:     u32,
     pub next:   Option<u32>,
+    #[serde(default)]
     pub status: TaskStatus,
     pub task:   Task  
 }
@@ -108,9 +110,9 @@ impl TaskData {
 }
 
 
-
-// JobTasks
+#[derive(Serialize, Deserialize, Clone)]
 pub struct JobTasks {
+    #[serde(deserialize_with = "deserialize_jobtask_data")]
     pub data:                   HashMap<u32, TaskData>,   
     pub current_task_id:        u32,
 }
@@ -189,9 +191,10 @@ impl JobTasks { pub fn new() -> Self {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Default, Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 pub enum TaskStatus {
     ToDo,
+    #[default]
     Waiting,
     Active,
     Done,
@@ -199,51 +202,51 @@ pub enum TaskStatus {
 }
 
 
-// Define component for each task
+/* TASK STRUCTS */
 
-#[derive(Component, Clone, Copy)]
+#[derive(Component, Clone, Copy, Serialize, Deserialize)]
 pub struct SpawnTask {
     pub color:  Color,
     pub loc:    Vec3
 }
 
-#[derive(Component, Clone, Copy)]
+#[derive(Component, Clone, Copy, Serialize, Deserialize)]
 pub struct DespawnTask;
 
-#[derive(Component, Clone, Copy)]
+#[derive(Component, Clone, Copy, Serialize, Deserialize)]
 pub struct MoveTask {
     pub source:         Vec3,
     pub target:         Vec3,
 }
 
-#[derive(Component, Clone, Copy)]
+#[derive(Component, Clone, Copy, Serialize, Deserialize)]
 pub struct RotateTask {
     pub angle:      f32
 }
 
-#[derive(Component, Clone)]
+#[derive(Component, Clone, Serialize, Deserialize)]
 pub struct WaitTask {
     pub schedule: JobSchedule
 }
 
-#[derive(Component, Clone, Copy)]
+#[derive(Component, Clone, Copy, Serialize, Deserialize)]
 pub struct HideTask;
 
-#[derive(Component, Clone, Copy)]
+#[derive(Component, Clone, Copy, Serialize, Deserialize)]
 pub struct ShowTask;
 
-#[derive(Component, Clone, Copy)]
+#[derive(Component, Clone, Copy, Serialize, Deserialize)]
 pub struct TeleportTask {
     pub loc: Vec3
 }
 
-#[derive(Component, Clone, Copy)]
+#[derive(Component, Clone, Copy, Serialize, Deserialize)]
 pub struct DecisionTask {
     pub opt1: u32,
     pub opt2: u32
 }
 
-#[derive(Component, Clone, Copy)]
+#[derive(Component, Clone, Copy, Serialize, Deserialize)]
 pub struct LoopTask {
     pub start_id:  u32, // Loops the tasks specified in the vector
     pub maxk:      Option<u32>
@@ -254,7 +257,7 @@ impl Default for LoopTask {
     }
 }
 
-// Task systems
+/* TASK SYSTEMS */
 
 fn spawn_task(
     mut commands:   Commands,
@@ -459,3 +462,34 @@ fn despawn_task(
 
 }
 
+
+
+// Converts the type of ID to int and also updates the ID value
+fn deserialize_jobtask_data<'de, D>(deserializer: D) -> Result<HashMap<u32, TaskData>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let str_map = HashMap::<String, TaskData>::deserialize(deserializer)?;
+    let original_len = str_map.len();
+    let data = {
+        str_map
+            .into_iter()
+            .map(|(str_key, mut value)| match str_key.parse() {
+                Ok(int_key) => {
+                    value.id = int_key;    
+                    Ok((int_key, value))
+                },
+                Err(_) => Err({
+                    Error::invalid_value(
+                        Unexpected::Str(&str_key),
+                        &"a non-negative integer",
+                    )
+                }),
+            }).collect::<Result<HashMap<_, _>, _>>()?
+    };
+    // multiple strings could parse to the same int, e.g "0" and "00"
+    if data.len() < original_len {
+        return Err(Error::custom("detected duplicate integer key"));
+    }
+    Ok(data)
+}

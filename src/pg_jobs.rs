@@ -1,16 +1,20 @@
-use bevy::app::{App, Plugin, PreUpdate, Update};
-use bevy::ecs::schedule::common_conditions::on_event;
+use bevy::app::{App, Plugin, PreUpdate, Update, Startup};
+use bevy::asset::{Asset, AssetServer, Assets, LoadedFolder, RecursiveDependencyLoadState, Handle};
+use bevy::ecs::schedule::common_conditions::{on_event, resource_exists};
 use bevy::ecs::schedule::{IntoSystemConfigs, Condition};
 use bevy::ecs::entity::Entity;
 use bevy::ecs::event::{Event, EventWriter};
-use bevy::ecs::system::{Resource, Res, ResMut};
-use bevy::ecs::system::Commands;
+use bevy::ecs::system::{Commands, Local, Resource, Res, ResMut};
 use bevy::log::info;
-
+use bevy::reflect::TypePath;
+use bevy_common_assets::json::JsonAssetPlugin;
+use bevy_common_assets::toml::TomlAssetPlugin;
 use bevy_pg_calendar::prelude::{Calendar, CalendarNewHourEvent, Cron};
 use serde::{Deserialize, Serialize};
 
 use crate::pg_tasks::JobTasks;
+
+
 pub struct PGJobsPlugin {
     pub active: bool 
 }
@@ -25,10 +29,14 @@ impl Default for PGJobsPlugin {
 impl Plugin for PGJobsPlugin {
     fn build(&self, app: &mut App) {
         app
+        .add_plugins(JsonAssetPlugin::<Job>::new(&["job.json"]))
+        .add_plugins(TomlAssetPlugin::<Job>::new(&["job.toml"]))
         .insert_resource(Jobs::init(self.active))
-        // .insert_resource(JobCatalog::init())
+        .insert_resource(JobCatalog::init())
         .add_event::<TriggerJobEvent>()
         .add_event::<TriggerPreJobEvent>()
+        .add_systems(Startup,   init)
+        .add_systems(Update,    track.run_if(resource_exists::<LoadedJobsHandles>))
         .add_systems(PreUpdate, (trigger_jobs_calendar.run_if(on_event::<CalendarNewHourEvent>()), 
                                  trigger_jobs_time)
                                 .chain()
@@ -36,10 +44,56 @@ impl Plugin for PGJobsPlugin {
         .add_systems(Update,    init_jobs.run_if(if_jobs_active.and_then(on_event::<TriggerJobEvent>())))
 
         // .add_systems(Update,    init_pre_jobs.run_if(on_event::<TriggerPrejob>()))
-        // .add_systems(Update,    update_fail_jobs.run_if(if_active)
+        // .add_systems(Update,handle_folder_jobs    update_fail_jobs.run_if(if_active)
         //                                         .after(init_jobs))
         ;
     }
+}
+
+#[derive(Resource)]
+pub struct LoadedJobsHandles(Handle<LoadedFolder>);
+
+// Read in all jobs from data files into asset server
+
+fn init(mut commands:   Commands,
+        ass:            Res<AssetServer>, ){
+    let handle_folder_jobs: Handle<LoadedFolder> = ass.load_folder("jobs/");
+    commands.insert_resource(LoadedJobsHandles(handle_folder_jobs));
+}
+
+struct JobsReady(bool);
+impl Default for JobsReady {
+    fn default() -> Self {
+        JobsReady(false)
+    }
+}
+
+fn track(mut commands:      Commands,
+         ass:               Res<AssetServer>,
+         mut job_ready:     Local<JobsReady>, 
+         ass_jobs:          Res<Assets<Job>>,
+         mut jobs_catalog:  ResMut<JobCatalog>,
+         loaded_data:       Res<LoadedJobsHandles>
+){
+
+    if !job_ready.0 {
+        if let Some(scenes_load_state) = ass.get_recursive_dependency_load_state(&loaded_data.0) {
+            if scenes_load_state == RecursiveDependencyLoadState::Loaded {
+                job_ready.0 = true;
+            }
+        }
+    }
+
+    if job_ready.0 {
+
+        for (_job_id, job) in ass_jobs.iter(){
+            jobs_catalog.add(job.clone());
+        }
+
+        commands.remove_resource::<LoadedJobsHandles>();
+
+    }
+
 }
 
 fn init_jobs(){
@@ -58,21 +112,21 @@ pub fn if_jobs_active(jobs: Res<Jobs>) -> bool {
     jobs.active
 }
 
-// #[derive(Resource)]
-// pub struct JobCatalog {
-//     pub data: Vec<Job>
-// }
-// impl JobCatalog {
-//     pub fn init() -> Self {
-//         JobCatalog { data: Vec::new() }
-//     }
-//     pub fn add(&mut self, job: Job) {
-//         self.data.push(job);
-//     }
-//     pub fn clear(&mut self){
-//         self.data.clear();
-//     } 
-// }
+#[derive(Resource)]
+pub struct JobCatalog {
+    pub data: Vec<Job>
+}
+impl JobCatalog {
+    pub fn init() -> Self {
+        JobCatalog { data: Vec::new() }
+    }
+    pub fn add(&mut self, job: Job) {
+        self.data.push(job);
+    }
+    pub fn clear(&mut self){
+        self.data.clear();
+    } 
+}
 
 #[derive(Resource)]
 pub struct Jobs {
@@ -149,19 +203,20 @@ impl Jobs {
     }
 }
 
-#[derive(PartialEq, Copy, Clone)]
+#[derive(PartialEq, Copy, Clone, Serialize, Deserialize)]
 pub enum JobStatus {
     ToDo,
     Active,
     Done
 }
 
-// #[derive(Clone)]
+#[derive(Serialize, Deserialize, Asset, TypePath, Clone)]
 pub struct Job {
     pub entity:        Option<Entity>,    // In the beginning there might not be entity.
     pub status:        JobStatus,
     pub schedule:      JobSchedule,       // Schedule that will start the Job
     pub tasks:         JobTasks,          // List of job.set_active();tasks to be performed by entity
+    pub id:            u32,               // Unique job id to search from catalog
     pub loopk:         u32,               // Used for loops to count iterations
     pub fail_task_id:  u32,               // ID of task to perform if task failed
     pub fail_job_id:   u32,               // ID of task to perform if job failed to start 
@@ -176,6 +231,7 @@ impl Default for Job {
             status:         JobStatus::ToDo,
             schedule:       JobSchedule::Instant, 
             tasks:          JobTasks::new(),
+            id:             0,
             loopk:          0,
             fail_task_id:   0,
             fail_job_id:    0,
@@ -203,18 +259,7 @@ impl Job {
     }
 
     pub fn new() -> Self {
-
-        let job = Job{
-            entity:       None,
-            status:       JobStatus::ToDo,
-            tasks:        JobTasks::new(), 
-            loopk:        0,
-            schedule:     JobSchedule::Instant,
-            fail_job_id:  0,
-            fail_task_id: 0,
-            active:       true,
-            prejob:       false
-        };
+        let job = Job::default();
         return job;
     }
     pub fn get_status(&mut self) -> JobStatus {
@@ -228,19 +273,13 @@ impl Job {
     }
 }
 
-
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
-pub enum JobSchedule {
-    // OnDemand,       
-    Instant,
-    RealDelay(f32),      // Real time delay         
-    Cron(Cron),
-    Delay(u8)
-         // Delay in in-game time hours - Should be one time . 
-                    //Real time delay would require another trigger check function (current one is triggered only by change in in-game hour)
+pub enum JobSchedule {      
+    Instant,             // Start instantly       
+    Cron(Cron),          // Waiting for Cron 
+    Delay(u8),           // Delay in in-game hours
+    RealDelay(f32)       // Real time delay  
 } 
-
-
 
 // Update jobs. Triggers every hour from calendar.
 fn trigger_jobs_calendar(mut commands:         Commands,

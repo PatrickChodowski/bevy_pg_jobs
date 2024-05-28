@@ -33,15 +33,3 @@ In order to use it you need to add it to your game and edit the pg_tasks file wi
 6) Loop tasks will loop over tasks from the start_index to itself
 7) If the loop task doesnt have maxk specified then it needs some DecisionTask at the end of iteration to get out of the loop
 
-
-## Todo
-- wait for event task
-- send event task
-- insert component task
-- text debug layer
-- read job from text file
-- JobCatalog example with predefined task
-- dynamic task like firetruck in cars
-- allow prejobs if needed (maybe not needed anymore?)
-- is task status needed now?
-
