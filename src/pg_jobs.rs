@@ -1,12 +1,20 @@
 use bevy::app::{App, Plugin, PreUpdate, Update, Startup};
 use bevy::asset::{Asset, AssetServer, Assets, LoadedFolder, RecursiveDependencyLoadState, Handle};
-use bevy::ecs::schedule::common_conditions::{on_event, resource_exists};
+use bevy::ecs::schedule::common_conditions::{on_event, resource_changed, resource_exists};
 use bevy::ecs::schedule::{IntoSystemConfigs, Condition};
 use bevy::ecs::entity::Entity;
 use bevy::ecs::event::{Event, EventWriter};
-use bevy::ecs::system::{Commands, Local, Resource, Res, ResMut};
+use bevy::ecs::component::Component;
+use bevy::ecs::system::{Commands, Local, Resource, Res, ResMut, Query};
+use bevy::ecs::query::With;
+use bevy::sprite::Anchor;
+use bevy::transform::components::Transform;
+use bevy::utils::default;
+use bevy::hierarchy::{BuildChildren, Parent};
 use bevy::log::info;
 use bevy::reflect::TypePath;
+use bevy::render::color::Color;
+use bevy::text::{Text2dBundle, TextStyle, Text};
 use bevy_common_assets::json::JsonAssetPlugin;
 use bevy_common_assets::toml::TomlAssetPlugin;
 use bevy_pg_calendar::prelude::{Calendar, CalendarNewHourEvent, Cron};
@@ -16,12 +24,14 @@ use crate::pg_tasks::JobTasks;
 
 
 pub struct PGJobsPlugin {
-    pub active: bool 
+    pub active: bool,
+    pub debug:  bool
 }
 impl Default for PGJobsPlugin {
     fn default() -> Self {
         PGJobsPlugin{
-            active:        true
+            active:        true,
+            debug:         true
         }
     }
 }
@@ -31,7 +41,7 @@ impl Plugin for PGJobsPlugin {
         app
         .add_plugins(JsonAssetPlugin::<Job>::new(&["job.json"]))
         .add_plugins(TomlAssetPlugin::<Job>::new(&["job.toml"]))
-        .insert_resource(Jobs::init(self.active))
+        .insert_resource(Jobs::init(self.active, self.debug))
         .insert_resource(JobCatalog::init())
         .add_event::<TriggerJobEvent>()
         .add_event::<TriggerPreJobEvent>()
@@ -42,6 +52,7 @@ impl Plugin for PGJobsPlugin {
                                 .chain()
                                 .run_if(if_jobs_active))
         .add_systems(Update,    init_jobs.run_if(if_jobs_active.and_then(on_event::<TriggerJobEvent>())))
+        .add_systems(Update,    debug_jobs.run_if(if_jobs_debug.and_then(resource_changed::<Jobs>)))
 
         // .add_systems(Update,    init_pre_jobs.run_if(on_event::<TriggerPrejob>()))
         // .add_systems(Update,handle_folder_jobs    update_fail_jobs.run_if(if_active)
@@ -112,6 +123,11 @@ pub fn if_jobs_active(jobs: Res<Jobs>) -> bool {
     jobs.active
 }
 
+pub fn if_jobs_debug(jobs: Res<Jobs>) -> bool {
+    jobs.debug
+}
+
+
 #[derive(Resource)]
 pub struct JobCatalog {
     pub data: Vec<Job>
@@ -131,11 +147,12 @@ impl JobCatalog {
 #[derive(Resource)]
 pub struct Jobs {
     active: bool,                   // For all jobs
+    debug:  bool,
     data:   Vec<Job>
 }
 impl Jobs {
-    fn init(active: bool) -> Self {
-        Self {active, data: Vec::new()}
+    fn init(active: bool, debug: bool) -> Self {
+        Self {active, debug, data: Vec::new()}
     }
     pub fn add(&mut self, job: Job) {
         self.data.push(job); // This allows for multiple jobs per entity :o
@@ -334,4 +351,61 @@ fn trigger_jobs_time(mut commands:           Commands,
             _=> {}
         }
     }
+}
+
+#[derive(Component)]
+struct JobDebug;
+
+
+
+// Displays each entity current task and its parameters
+fn debug_jobs(mut commands:     Commands, 
+              ass:              Res<AssetServer>,
+              jobs:             Res<Jobs>, 
+              mut jobdebugs:    Query<(&Parent, &mut Text), With<JobDebug>>
+            ){
+    
+    let font = ass.load("fonts/FiraMono-Medium.ttf");
+    let text_style = TextStyle {
+        font: font.clone(),
+        font_size: 20.0,
+        color: Color::WHITE,
+    };
+
+
+    for job in jobs.data.iter(){
+        if let Some(job_entity) = job.entity {
+
+            let current_task = job.tasks.get_current();
+            let mut needs_label: bool = true;
+
+            for(text_parent, mut text) in jobdebugs.iter_mut(){
+
+                if **text_parent != job_entity {
+                    continue; 
+                }
+                needs_label = false;
+                text.sections[0].value = current_task.display();
+            } 
+
+
+            if needs_label {
+                let debug_text = commands.spawn((
+                    Text2dBundle {
+                        text: Text::from_section(current_task.display(), text_style.clone()),
+                        text_anchor: Anchor::TopCenter,
+                        transform: Transform::from_xyz(0.0, 70.0, 10.0),
+                        ..default()
+                    },
+                    JobDebug,
+                )).id();
+            
+                commands.entity(job_entity).add_child(debug_text);
+            }
+
+        }
+
+    }
+    
+
 }

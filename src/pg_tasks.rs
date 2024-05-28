@@ -77,6 +77,20 @@ impl Task {
             Task::Loop(data)     => {commands.entity(*entity).insert(*data);}
         }
     }
+    pub fn display(&self) -> String {
+        match &self {
+            Task::Spawn(data)    => {format!("Spawn: loc: {}, color: {:?}", data.loc, data.color)}
+            Task::Despawn(_data) => {format!("Despawn")}
+            Task::Move(data)     => {format!("Move: from: {}, to: {}", data.source, data.target)}
+            Task::Rotate(data)   => {format!("Rotate: angle: {}", data.angle)}
+            Task::Wait(data)     => {format!("Wait: schedule: {:?}", data.schedule)}
+            Task::Hide(_data)    => {format!("Hide")}
+            Task::Show(_data)    => {format!("Show")}
+            Task::Teleport(data) => {format!("Teleport: to: {}", data.loc)}
+            Task::Decision(data) => {format!("Decision: opt1: {}, opt2: {}", data.opt1, data.opt2)}
+            Task::Loop(data)     => {format!("Loop: start_id: {}, maxk: {:?}", data.start_id, data.maxk)}
+        }
+    }
 }
 
 // TaskData
