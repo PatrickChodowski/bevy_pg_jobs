@@ -28,8 +28,9 @@ In order to use it you need to add it to your game and edit the pg_tasks file wi
     - Wait
     - Decision Task 
     - Loop Task
+    - Extension tasks
 
 5) Decision tasks will make a decision and switch to some other task
 6) Loop tasks will loop over tasks from the start_index to itself
 7) If the loop task doesnt have maxk specified then it needs some DecisionTask at the end of iteration to get out of the loop
-
+8) Extension task like for example: MoveToX, will first have a component for finding X, and in the system would create the move component. After search we simply delete component FindX, but insert the move component instead.

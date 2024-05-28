@@ -507,3 +507,50 @@ where
     }
     Ok(data)
 }
+
+/* Invented the extendable task:
+
+fn move_to_chair_task(
+    mut commands:      Commands,
+    mut tables:        Query<(Entity, &mut Table, &Relatives)>,
+    mut chairs:        Query<(Entity, &Transform, &mut Chair)>,
+    mut tasks:         Query<(Entity, &Transform, &mut AnimData), With<MoveToChairTask>>){
+
+    for (task_entity, task_transform, mut anim_data) in tasks.iter_mut(){
+
+        for (_table_entity, mut table, table_chairs) in tables.iter_mut(){
+            if !table.free {
+                continue; // need free table
+            }
+            let mut found_sit: bool = false;
+            for chair_entity in table_chairs.data.iter(){
+    
+                if let Ok((chair_entity, chair_transform, mut chair)) = chairs.get_mut(*chair_entity) {
+                    if !chair.free {
+                        continue; // need free chair
+                    }
+                    let mobj: MoveTask = MoveTask{
+                        source: task_transform.translation, 
+                        target: chair_transform.translation,
+                        route: None,
+                        route_index: 0
+                    };
+                    anim_data.set(AnimType::Walk);
+                    commands.entity(task_entity).insert(mobj);
+                    commands.entity(task_entity).remove::<MoveToChairTask>();
+                    commands.entity(task_entity).insert(PickedChair::new(chair.angle, chair_entity));
+                    chair.free = false;
+                    table.free = false;
+                    found_sit = true;
+                    
+                    break;
+                }
+            }
+            if found_sit {
+                break;
+            }
+        }
+    }
+}
+
+*/
