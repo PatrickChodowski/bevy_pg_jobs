@@ -368,7 +368,7 @@ struct JobDebug;
 fn debug_jobs(mut commands:     Commands, 
               ass:              Res<AssetServer>,
               jobs:             Res<Jobs>, 
-              mut jobdebugs:    Query<(&Parent, &mut Text), With<JobDebug>>
+              mut jobdebugs:    Query<(Entity, &Parent, &mut Text), With<JobDebug>>
             ){
     
     let font = ass.load("fonts/FiraMono-Medium.ttf");
@@ -378,40 +378,43 @@ fn debug_jobs(mut commands:     Commands,
         color: Color::WHITE,
     };
 
-
-    for job in jobs.data.iter(){
-        if let Some(job_entity) = job.entity {
-
-            let current_task = job.tasks.get_current();
-            let mut needs_label: bool = true;
-
-            for(text_parent, mut text) in jobdebugs.iter_mut(){
-
-                if **text_parent != job_entity {
-                    continue; 
-                }
-                needs_label = false;
-                text.sections[0].value = current_task.display();
-            } 
-
-
-            if needs_label {
-                let debug_text = commands.spawn((
-                    Text2dBundle {
-                        text: Text::from_section(current_task.display(), text_style.clone()),
-                        text_anchor: Anchor::TopCenter,
-                        transform: Transform::from_xyz(0.0, 70.0, 10.0),
-                        ..default()
-                    },
-                    JobDebug,
-                )).id();
-            
-                commands.entity(job_entity).add_child(debug_text);
-            }
-
-        }
-
-    }
+    if jobs.get_debug(){
+        for job in jobs.data.iter(){
+            if let Some(job_entity) = job.entity {
     
-
+                let current_task = job.tasks.get_current();
+                let mut needs_label: bool = true;
+    
+                for(_text_entity, text_parent, mut text) in jobdebugs.iter_mut(){
+    
+                    if **text_parent != job_entity {
+                        continue; 
+                    }
+                    needs_label = false;
+                    text.sections[0].value = current_task.display();
+                } 
+    
+    
+                if needs_label {
+                    let debug_text = commands.spawn((
+                        Text2dBundle {
+                            text: Text::from_section(current_task.display(), text_style.clone()),
+                            text_anchor: Anchor::TopCenter,
+                            transform: Transform::from_xyz(0.0, 70.0, 10.0),
+                            ..default()
+                        },
+                        JobDebug,
+                    )).id();
+                
+                    commands.entity(job_entity).add_child(debug_text);
+                }
+    
+            }
+    
+        }
+    } else {
+        for(text_entity, _text_parent, _text) in jobdebugs.iter(){
+            commands.entity(text_entity).despawn();
+        }
+    }
 }
