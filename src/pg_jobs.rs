@@ -55,7 +55,7 @@ impl Plugin for PGJobsPlugin {
         .add_systems(Update,    debug_jobs.run_if(if_jobs_debug.and_then(resource_changed::<Jobs>)))
 
         // .add_systems(Update,    init_pre_jobs.run_if(on_event::<TriggerPrejob>()))
-        // .add_systems(Update,handle_folder_jobs    update_fail_jobs.run_if(if_active)
+        // .add_systems(Update,    handle_folder_jobs    update_fail_jobs.run_if(if_active)
         //                                         .after(init_jobs))
         ;
     }
@@ -220,14 +220,14 @@ impl Jobs {
     }
 }
 
-#[derive(PartialEq, Copy, Clone, Serialize, Deserialize)]
+#[derive(PartialEq, Copy, Clone, Serialize, Deserialize, Debug)]
 pub enum JobStatus {
     ToDo,
     Active,
     Done
 }
 
-#[derive(Serialize, Deserialize, Asset, TypePath, Clone)]
+#[derive(Serialize, Deserialize, Asset, TypePath, Clone, Debug)]
 pub struct Job {
     pub entity:        Option<Entity>,    // In the beginning there might not be entity.
     pub status:        JobStatus,

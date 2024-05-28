@@ -34,7 +34,7 @@ impl Plugin for TasksPlugin {
 }
 
 // Fill it up with the tasks for the game
-#[derive(Component, Clone, Serialize, Deserialize)]
+#[derive(Component, Clone, Serialize, Deserialize, Debug)]
 #[serde(tag = "type")]
 pub enum Task {
     Spawn(SpawnTask),
@@ -94,7 +94,7 @@ impl Task {
 }
 
 // TaskData
-#[derive(Clone, Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct TaskData {
     #[serde(skip_deserializing)]
     pub id:     u32,
@@ -124,7 +124,7 @@ impl TaskData {
 }
 
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct JobTasks {
     #[serde(deserialize_with = "deserialize_jobtask_data")]
     pub data:                   HashMap<u32, TaskData>,   
@@ -218,49 +218,49 @@ pub enum TaskStatus {
 
 /* TASK STRUCTS */
 
-#[derive(Component, Clone, Copy, Serialize, Deserialize)]
+#[derive(Component, Clone, Copy, Serialize, Deserialize, Debug)]
 pub struct SpawnTask {
     pub color:  Color,
     pub loc:    Vec3
 }
 
-#[derive(Component, Clone, Copy, Serialize, Deserialize)]
+#[derive(Component, Clone, Copy, Serialize, Deserialize, Debug)]
 pub struct DespawnTask;
 
-#[derive(Component, Clone, Copy, Serialize, Deserialize)]
+#[derive(Component, Clone, Copy, Serialize, Deserialize, Debug)]
 pub struct MoveTask {
     pub source:         Vec3,
     pub target:         Vec3,
 }
 
-#[derive(Component, Clone, Copy, Serialize, Deserialize)]
+#[derive(Component, Clone, Copy, Serialize, Deserialize, Debug)]
 pub struct RotateTask {
     pub angle:      f32
 }
 
-#[derive(Component, Clone, Serialize, Deserialize)]
+#[derive(Component, Clone, Serialize, Deserialize, Debug)]
 pub struct WaitTask {
     pub schedule: JobSchedule
 }
 
-#[derive(Component, Clone, Copy, Serialize, Deserialize)]
+#[derive(Component, Clone, Copy, Serialize, Deserialize, Debug)]
 pub struct HideTask;
 
-#[derive(Component, Clone, Copy, Serialize, Deserialize)]
+#[derive(Component, Clone, Copy, Serialize, Deserialize, Debug)]
 pub struct ShowTask;
 
-#[derive(Component, Clone, Copy, Serialize, Deserialize)]
+#[derive(Component, Clone, Copy, Serialize, Deserialize, Debug)]
 pub struct TeleportTask {
     pub loc: Vec3
 }
 
-#[derive(Component, Clone, Copy, Serialize, Deserialize)]
+#[derive(Component, Clone, Copy, Serialize, Deserialize, Debug)]
 pub struct DecisionTask {
     pub opt1: u32,
     pub opt2: u32
 }
 
-#[derive(Component, Clone, Copy, Serialize, Deserialize)]
+#[derive(Component, Clone, Copy, Serialize, Deserialize, Debug)]
 pub struct LoopTask {
     pub start_id:  u32, // Loops the tasks specified in the vector
     pub maxk:      Option<u32>
