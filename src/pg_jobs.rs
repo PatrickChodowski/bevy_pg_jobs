@@ -218,6 +218,12 @@ impl Jobs {
     pub fn clear(&mut self) {
         self.data.clear();
     }
+    pub fn set_debug(&mut self, b: bool) {
+        self.debug = b
+    }
+    pub fn get_debug(&self) -> bool {
+        self.debug
+    }
 }
 
 #[derive(PartialEq, Copy, Clone, Serialize, Deserialize, Debug)]
