@@ -79,31 +79,33 @@ impl Default for JobsReady {
     }
 }
 
+
 fn track(mut commands:      Commands,
-         ass:               Res<AssetServer>,
-         mut job_ready:     Local<JobsReady>, 
-         ass_jobs:          Res<Assets<Job>>,
-         mut jobs_catalog:  ResMut<JobCatalog>,
-         loaded_data:       Res<LoadedJobsHandles>
+    ass:               Res<AssetServer>,
+    mut job_ready:     Local<JobsReady>, 
+    mut ass_jobs:      ResMut<Assets<Job>>,
+    mut jobs_catalog:  ResMut<JobCatalog>,
+    loaded_data:       Res<LoadedJobsHandles>
 ){
 
-    if !job_ready.0 {
-        if let Some(scenes_load_state) = ass.get_recursive_dependency_load_state(&loaded_data.0) {
-            if scenes_load_state == RecursiveDependencyLoadState::Loaded {
-                job_ready.0 = true;
-            }
-        }
-    }
+if !job_ready.0 {
+   if let Some(scenes_load_state) = ass.get_recursive_dependency_load_state(&loaded_data.0) {
+       if scenes_load_state == RecursiveDependencyLoadState::Loaded {
+           job_ready.0 = true;
+       }
+   }
+}
 
-    if job_ready.0 {
+if job_ready.0 {
 
-        for (_job_id, job) in ass_jobs.iter(){
-            jobs_catalog.add(job.clone());
-        }
+   for (_job_id, job) in ass_jobs.iter_mut(){
+       job.schedule.parse();
+       jobs_catalog.add(job.clone());
+   }
 
-        commands.remove_resource::<LoadedJobsHandles>();
+   commands.remove_resource::<LoadedJobsHandles>();
 
-    }
+}
 
 }
 
