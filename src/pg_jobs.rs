@@ -303,6 +303,15 @@ pub enum JobSchedule {
     Delay(u8),           // Delay in in-game hours
     RealDelay(f32)       // Real time delay  
 } 
+impl JobSchedule {
+    pub fn parse(&mut self) {
+        match self {
+            JobSchedule::Cron(ref mut cron) => {cron.parse()}
+            _ => {}
+        }
+    }
+}
+
 
 // Update jobs. Triggers every hour from calendar.
 fn trigger_jobs_calendar(mut commands:         Commands,
