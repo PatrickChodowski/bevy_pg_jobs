@@ -6,8 +6,7 @@ use serde::{Deserialize, Serialize, Deserializer, de::Error, de::Unexpected};
 use crate::utils::{get_direction, get_distance_manhattan, get_random_range_u32, move_x, move_y};
 
 use bevy_pg_calendar::prelude::{Calendar, CalendarNewHourEvent};
-use crate::pg_jobs::Jobs;
-use crate::prelude::JobSchedule;
+use crate::pg_jobs::{Jobs, JobSchedule};
 
 pub const SPAWN_TASK_ID:   u32 = 0;
 pub const DESPAWN_TASK_ID: u32 = 1000;
