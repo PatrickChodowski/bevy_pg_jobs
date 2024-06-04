@@ -205,6 +205,7 @@ impl JobTasks { pub fn new() -> Self {
 }
 
 #[derive(Default, Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+
 pub enum TaskStatus {
     ToDo,
     #[default]
@@ -218,48 +219,58 @@ pub enum TaskStatus {
 /* TASK STRUCTS */
 
 #[derive(Component, Clone, Copy, Serialize, Deserialize, Debug)]
+#[component(storage = "SparseSet")]
 pub struct SpawnTask {
     pub color:  Color,
     pub loc:    Vec3
 }
 
 #[derive(Component, Clone, Copy, Serialize, Deserialize, Debug)]
+#[component(storage = "SparseSet")]
 pub struct DespawnTask;
 
 #[derive(Component, Clone, Copy, Serialize, Deserialize, Debug)]
+#[component(storage = "SparseSet")]
 pub struct MoveTask {
     pub source:         Vec3,
     pub target:         Vec3,
 }
 
 #[derive(Component, Clone, Copy, Serialize, Deserialize, Debug)]
+#[component(storage = "SparseSet")]
 pub struct RotateTask {
     pub angle:      f32
 }
 
 #[derive(Component, Clone, Serialize, Deserialize, Debug)]
+#[component(storage = "SparseSet")]
 pub struct WaitTask {
     pub schedule: JobSchedule
 }
 
 #[derive(Component, Clone, Copy, Serialize, Deserialize, Debug)]
+#[component(storage = "SparseSet")]
 pub struct HideTask;
 
 #[derive(Component, Clone, Copy, Serialize, Deserialize, Debug)]
+#[component(storage = "SparseSet")]
 pub struct ShowTask;
 
 #[derive(Component, Clone, Copy, Serialize, Deserialize, Debug)]
+#[component(storage = "SparseSet")]
 pub struct TeleportTask {
     pub loc: Vec3
 }
 
 #[derive(Component, Clone, Copy, Serialize, Deserialize, Debug)]
+#[component(storage = "SparseSet")]
 pub struct DecisionTask {
     pub opt1: u32,
     pub opt2: u32
 }
 
 #[derive(Component, Clone, Copy, Serialize, Deserialize, Debug)]
+#[component(storage = "SparseSet")]
 pub struct LoopTask {
     pub start_id:  u32, // Loops the tasks specified in the vector
     pub maxk:      Option<u32>

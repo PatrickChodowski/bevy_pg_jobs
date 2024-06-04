@@ -226,6 +226,9 @@ impl Jobs {
     pub fn get_debug(&self) -> bool {
         self.debug
     }
+    pub fn get_data(&self) -> &Vec<Job> {
+        &self.data
+    }
 }
 
 #[derive(PartialEq, Copy, Clone, Serialize, Deserialize, Debug)]
