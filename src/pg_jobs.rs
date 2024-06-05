@@ -53,7 +53,7 @@ impl Plugin for PGJobsPlugin {
                                 .run_if(if_jobs_active))
         .add_systems(Update,    debug_jobs.run_if(if_jobs_debug.and_then(resource_changed::<Jobs>)))
         .add_systems(PreUpdate, (stop_job.run_if(on_event::<StopJobEvent>()), 
-                                 start_job.run_if(on_event::<StartJobEvent>())))
+                                 start_job.run_if(on_event::<StartJobEvent>())).chain())
         // .add_systems(Update,    handle_folder_jobs    update_fail_jobs.run_if(if_active)
         //                                         .after(init_jobs))
         ;
@@ -215,7 +215,10 @@ impl Jobs {
             self.data.push(job);
         }
     }
-    pub fn remove(&mut self, entity: &Entity) {
+    pub fn remove(&mut self, job_id: u32, entity: &Entity) {
+        self.data.retain(|x| !(x.entity == Some(*entity) && x.id == job_id))
+    }
+    pub fn remove_all(&mut self, entity: &Entity) {
         self.data.retain(|x| x.entity != Some(*entity))
     }
     pub fn activate(&mut self) {
@@ -384,7 +387,7 @@ fn stop_job(
             let task = job.tasks.get_current();
             task.remove(&mut commands, ev.entity);
         }
-        jobs.remove(&ev.entity);
+        jobs.remove_all(&ev.entity);
 
         for (text_entity, task_entity) in jobdebugs.iter(){
             if **task_entity == ev.entity {
