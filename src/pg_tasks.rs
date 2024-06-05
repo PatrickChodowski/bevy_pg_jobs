@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize, Deserializer, de::Error, de::Unexpected};
 use crate::utils::{get_direction, get_distance_manhattan, get_random_range_u32, move_x, move_y};
 
 use bevy_pg_calendar::prelude::{Calendar, CalendarNewHourEvent};
-use crate::pg_jobs::{Jobs, JobSchedule, StopJobEvent};
+use crate::pg_jobs::{Jobs, JobSchedule, StopJobEvent, JobDebug};
 
 pub const SPAWN_TASK_ID:   u32 = 0;
 pub const DESPAWN_TASK_ID: u32 = 1000;
@@ -537,7 +537,8 @@ where
 fn stop_job(
     mut commands:       Commands,
     mut jobs:           ResMut<Jobs>,
-    mut stop_job:       EventReader<StopJobEvent>
+    mut stop_job:       EventReader<StopJobEvent>,
+    jobdebugs:          Query<(Entity, &Parent), With<JobDebug>>
 ){
     for ev in stop_job.read(){
         if let Some(job) = jobs.get(&ev.entity){
@@ -545,7 +546,15 @@ fn stop_job(
             task.remove(&mut commands, ev.entity);
         }
         jobs.remove(&ev.entity);
+
+        for (text_entity, task_entity) in jobdebugs.iter(){
+            if **task_entity == ev.entity {
+                commands.entity(text_entity).despawn_recursive();
+                break;
+            }
+        }
     }
+
 
 }
 
