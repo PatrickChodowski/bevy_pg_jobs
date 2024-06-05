@@ -3,7 +3,7 @@ use bevy::asset::{Asset, AssetServer, Assets, LoadedFolder, RecursiveDependencyL
 use bevy::ecs::schedule::common_conditions::{on_event, resource_changed, resource_exists};
 use bevy::ecs::schedule::{IntoSystemConfigs, Condition};
 use bevy::ecs::entity::Entity;
-use bevy::ecs::event::{Event, EventWriter};
+use bevy::ecs::event::Event;
 use bevy::ecs::component::Component;
 use bevy::ecs::system::{Commands, Local, Resource, Res, ResMut, Query};
 use bevy::ecs::query::With;
@@ -11,7 +11,6 @@ use bevy::sprite::Anchor;
 use bevy::transform::components::Transform;
 use bevy::utils::default;
 use bevy::hierarchy::{BuildChildren, Parent};
-use bevy::log::info;
 use bevy::reflect::TypePath;
 use bevy::render::color::Color;
 use bevy::text::{Text2dBundle, TextStyle, Text};
@@ -43,19 +42,15 @@ impl Plugin for PGJobsPlugin {
         .add_plugins(TomlAssetPlugin::<Job>::new(&["job.toml"]))
         .insert_resource(Jobs::init(self.active, self.debug))
         .insert_resource(JobCatalog::init())
-        .add_event::<TriggerJobEvent>()
-        .add_event::<TriggerPreJobEvent>()
         .add_event::<StopJobEvent>()
+        .add_event::<StartJobEvent>()
         .add_systems(Startup,   init)
         .add_systems(Update,    track.run_if(resource_exists::<LoadedJobsHandles>))
         .add_systems(PreUpdate, (trigger_jobs_calendar.run_if(on_event::<CalendarNewHourEvent>()), 
                                  trigger_jobs_time)
                                 .chain()
                                 .run_if(if_jobs_active))
-        .add_systems(Update,    init_jobs.run_if(if_jobs_active.and_then(on_event::<TriggerJobEvent>())))
         .add_systems(Update,    debug_jobs.run_if(if_jobs_debug.and_then(resource_changed::<Jobs>)))
-
-        // .add_systems(Update,    init_pre_jobs.run_if(on_event::<TriggerPrejob>()))
         // .add_systems(Update,    handle_folder_jobs    update_fail_jobs.run_if(if_active)
         //                                         .after(init_jobs))
         ;
@@ -66,6 +61,12 @@ impl Plugin for PGJobsPlugin {
 pub struct StopJobEvent {
     pub entity: Entity
 }
+
+#[derive(Event)]
+pub struct StartJobEvent {
+    pub entity: Entity
+}
+
 
 #[derive(Resource)]
 pub struct LoadedJobsHandles(Handle<LoadedFolder>);
@@ -86,7 +87,8 @@ impl Default for JobsReady {
 }
 
 
-fn track(mut commands:      Commands,
+fn track(
+    mut commands:      Commands,
     ass:               Res<AssetServer>,
     mut job_ready:     Local<JobsReady>, 
     mut ass_jobs:      ResMut<Assets<Job>>,
@@ -114,18 +116,6 @@ fn track(mut commands:      Commands,
     }
 
 }
-
-fn init_jobs(){
-    info!("Init Jobs triggered");
-}
-
-#[derive(Event)]
-pub struct TriggerJobEvent{
-    pub entity: Entity
-}
-
-#[derive(Event)]
-pub struct TriggerPreJobEvent;
 
 pub fn if_jobs_active(jobs: Res<Jobs>) -> bool {
     jobs.active
@@ -277,17 +267,11 @@ impl Default for Job {
 
 impl Job {
     
-    pub fn start(&mut self, 
-                 commands:           &mut Commands,
-                 trigger_job:        &mut EventWriter<TriggerJobEvent>,
-                 trigger_prejob:     &mut EventWriter<TriggerPreJobEvent>
-                ) {
+    pub fn start(
+        &mut self, 
+        commands:           &mut Commands
+    ) {
         let entity = self.tasks.start(commands);
-        if self.prejob {
-            trigger_prejob.send(TriggerPreJobEvent);
-        } else {
-            trigger_job.send(TriggerJobEvent{entity});
-        }
         self.entity = Some(entity);
         self.set_active();
     }
@@ -325,12 +309,11 @@ impl JobSchedule {
 
 
 // Update jobs. Triggers every hour from calendar.
-fn trigger_jobs_calendar(mut commands:         Commands,
-                         calendar:             Res<Calendar>,
-                         mut jobs:             ResMut<Jobs>,
-                         mut trigger_prejob:   EventWriter<TriggerPreJobEvent>,
-                         mut trigger_job:      EventWriter<TriggerJobEvent>){
-
+fn trigger_jobs_calendar(
+    mut commands:         Commands,
+    calendar:             Res<Calendar>,
+    mut jobs:             ResMut<Jobs>
+){
 
     for job in jobs.data.iter_mut(){
 
@@ -346,7 +329,7 @@ fn trigger_jobs_calendar(mut commands:         Commands,
             JobSchedule::Cron(cron) => {
                 if cron.hours.as_ref().unwrap().contains(&calendar.get_current_hour()) && 
                    cron.days_week.as_ref().unwrap().contains(&calendar.get_current_weekday()){
-                    job.start(&mut commands, &mut trigger_job, &mut trigger_prejob);
+                    job.start(&mut commands);
                 }
              }
             _=> {}
@@ -356,10 +339,10 @@ fn trigger_jobs_calendar(mut commands:         Commands,
 }
 
 // Updates jobs on real time
-fn trigger_jobs_time(mut commands:           Commands,
-                     mut jobs:               ResMut<Jobs>,
-                     mut trigger_prejob:     EventWriter<TriggerPreJobEvent>,
-                     mut trigger_job:        EventWriter<TriggerJobEvent>,){
+fn trigger_jobs_time(
+    mut commands:           Commands,
+    mut jobs:               ResMut<Jobs>
+){
 
     for job in jobs.data.iter_mut(){
 
@@ -372,7 +355,7 @@ fn trigger_jobs_time(mut commands:           Commands,
 
         match &job.schedule {
             JobSchedule::Instant => {
-                job.start(&mut commands, &mut trigger_job, &mut trigger_prejob);
+                job.start(&mut commands);
             }
             _=> {}
         }
@@ -385,11 +368,12 @@ pub struct JobDebug;
 
 
 // Displays each entity current task and its parameters
-fn debug_jobs(mut commands:     Commands, 
-              ass:              Res<AssetServer>,
-              jobs:             Res<Jobs>, 
-              mut jobdebugs:    Query<(Entity, &Parent, &mut Text), With<JobDebug>>
-            ){
+fn debug_jobs(
+    mut commands:     Commands, 
+    ass:              Res<AssetServer>,
+    jobs:             Res<Jobs>, 
+    mut jobdebugs:    Query<(Entity, &Parent, &mut Text), With<JobDebug>>
+){
     
     let font = ass.load("fonts/FiraMono-Medium.ttf");
     let text_style = TextStyle {
