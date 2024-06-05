@@ -3,11 +3,12 @@ use bevy::asset::{Asset, AssetServer, Assets, LoadedFolder, RecursiveDependencyL
 use bevy::ecs::schedule::common_conditions::{on_event, resource_changed, resource_exists};
 use bevy::ecs::schedule::{IntoSystemConfigs, Condition};
 use bevy::ecs::entity::Entity;
-use bevy::ecs::event::Event;
+use bevy::ecs::event::{Event, EventReader};
 use bevy::ecs::component::Component;
 use bevy::ecs::system::{Commands, Local, Resource, Res, ResMut, Query};
 use bevy::ecs::query::With;
 use bevy::sprite::Anchor;
+use bevy::hierarchy::DespawnRecursiveExt;
 use bevy::transform::components::Transform;
 use bevy::utils::default;
 use bevy::hierarchy::{BuildChildren, Parent};
@@ -51,6 +52,8 @@ impl Plugin for PGJobsPlugin {
                                 .chain()
                                 .run_if(if_jobs_active))
         .add_systems(Update,    debug_jobs.run_if(if_jobs_debug.and_then(resource_changed::<Jobs>)))
+        .add_systems(PreUpdate, (stop_job.run_if(on_event::<StopJobEvent>()), 
+                                 start_job.run_if(on_event::<StartJobEvent>())))
         // .add_systems(Update,    handle_folder_jobs    update_fail_jobs.run_if(if_active)
         //                                         .after(init_jobs))
         ;
@@ -64,9 +67,9 @@ pub struct StopJobEvent {
 
 #[derive(Event)]
 pub struct StartJobEvent {
+    pub job_id: u32,
     pub entity: Entity
 }
-
 
 #[derive(Resource)]
 pub struct LoadedJobsHandles(Handle<LoadedFolder>);
@@ -140,6 +143,14 @@ impl JobCatalog {
     pub fn clear(&mut self){
         self.data.clear();
     } 
+    pub fn get(&self, id: u32) -> Option<Job> {
+        for job in self.data.iter() {
+            if job.id == id {
+                return Some(job.clone());
+            }
+        }
+        return None;
+    }
 }
 
 #[derive(Resource)]
@@ -362,8 +373,44 @@ fn trigger_jobs_time(
     }
 }
 
+fn stop_job(
+    mut commands:       Commands,
+    mut jobs:           ResMut<Jobs>,
+    mut stop_job:       EventReader<StopJobEvent>,
+    jobdebugs:          Query<(Entity, &Parent), With<JobDebug>>
+){
+    for ev in stop_job.read(){
+        if let Some(job) = jobs.get(&ev.entity){
+            let task = job.tasks.get_current();
+            task.remove(&mut commands, ev.entity);
+        }
+        jobs.remove(&ev.entity);
+
+        for (text_entity, task_entity) in jobdebugs.iter(){
+            if **task_entity == ev.entity {
+                commands.entity(text_entity).despawn_recursive();
+                break;
+            }
+        }
+    }
+}
+
+fn start_job(
+    mut jobs:           ResMut<Jobs>,
+    jobs_catalog:       Res<JobCatalog>,
+    mut start_job:      EventReader<StartJobEvent>
+){
+    for ev in start_job.read(){
+        if let Some(mut job) = jobs_catalog.get(ev.job_id) {
+            job.entity = Some(ev.entity);
+            jobs.add(job);
+        }
+    }
+}
+
+
 #[derive(Component)]
-pub struct JobDebug;
+struct JobDebug;
 
 
 
