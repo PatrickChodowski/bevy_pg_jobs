@@ -280,13 +280,14 @@ impl Default for Job {
 }
 
 impl Job {
-    
     pub fn start(
         &mut self, 
-        commands:           &mut Commands
-    ) {
-        let entity = self.tasks.start(commands);
-        self.entity = Some(entity);
+        commands: &mut Commands
+    ){
+        let entity = self.tasks.start(commands, self.entity);
+        if self.entity.is_none(){
+            self.entity = Some(entity);
+        }
         self.set_active();
     }
 

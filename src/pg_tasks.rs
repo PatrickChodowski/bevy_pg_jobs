@@ -165,17 +165,27 @@ impl JobTasks { pub fn new() -> Self {
         }
     }
 
-    pub fn start(&mut self, commands: &mut Commands) -> Entity {
+    pub fn start(&mut self, commands: &mut Commands, job_entity: Option<Entity>) -> Entity {
         let current_task = &self.data.get(&self.current_task_id).unwrap();
-        let entity = current_task.task.spawn_with_task(commands);
-        self.set_current_status(TaskStatus::Active);
-        return entity;
+        if let Some(job_entity) = job_entity {
+            current_task.task.add_task(commands, &job_entity);
+            self.set_current_status(TaskStatus::Active);
+            info!(" [Tasks]: Starting job for entity: {:?}", job_entity);
+            return job_entity;
+        } else {
+            let entity = current_task.task.spawn_with_task(commands);
+            self.set_current_status(TaskStatus::Active);
+            info!(" [Tasks]: Spawning job entity: {:?}", entity);
+            return entity;
+        }
     }
+
     pub fn set_task(&mut self, next_task_id: u32) -> &Task {
         self.current_task_id = next_task_id;
         self.set_current_status(TaskStatus::ToDo);
         return self.get_current();
     }
+    
     pub fn next_task(&mut self) -> &Task {
         match self.get_current_status() {
             &TaskStatus::Done => {
