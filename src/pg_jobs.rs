@@ -45,6 +45,7 @@ impl Plugin for PGJobsPlugin {
         .insert_resource(JobCatalog::init())
         .add_event::<TriggerJobEvent>()
         .add_event::<TriggerPreJobEvent>()
+        .add_event::<StopJobEvent>()
         .add_systems(Startup,   init)
         .add_systems(Update,    track.run_if(resource_exists::<LoadedJobsHandles>))
         .add_systems(PreUpdate, (trigger_jobs_calendar.run_if(on_event::<CalendarNewHourEvent>()), 
@@ -59,6 +60,11 @@ impl Plugin for PGJobsPlugin {
         //                                         .after(init_jobs))
         ;
     }
+}
+
+#[derive(Event)]
+pub struct StopJobEvent {
+    pub entity: Entity
 }
 
 #[derive(Resource)]

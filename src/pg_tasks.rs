@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize, Deserializer, de::Error, de::Unexpected};
 use crate::utils::{get_direction, get_distance_manhattan, get_random_range_u32, move_x, move_y};
 
 use bevy_pg_calendar::prelude::{Calendar, CalendarNewHourEvent};
-use crate::pg_jobs::{Jobs, JobSchedule};
+use crate::pg_jobs::{Jobs, JobSchedule, StopJobEvent};
 
 pub const SPAWN_TASK_ID:   u32 = 0;
 pub const DESPAWN_TASK_ID: u32 = 1000;
@@ -28,6 +28,7 @@ impl Plugin for TasksPlugin {
                               despawn_task,
                               loop_task
                             ))
+        .add_systems(PreUpdate, stop_job.run_if(on_event::<StopJobEvent>()))
         ;
     }
 }
@@ -88,6 +89,21 @@ impl Task {
             Task::Teleport(data) => {format!("Teleport: to: {}", data.loc)}
             Task::Decision(data) => {format!("Decision: opt1: {}, opt2: {}", data.opt1, data.opt2)}
             Task::Loop(data)     => {format!("Loop: start_id: {}, maxk: {:?}", data.start_id, data.maxk)}
+        }
+    }
+
+    pub fn remove(&self, commands: &mut Commands, entity: Entity){
+        match &self {
+            Task::Spawn(_data)           => {commands.entity(entity).remove::<SpawnTask>();}
+            Task::Despawn(_data)         => {commands.entity(entity).remove::<DespawnTask>();}
+            Task::Move(_data)            => {commands.entity(entity).remove::<MoveTask>();}
+            Task::Wait(_data)            => {commands.entity(entity).remove::<WaitTask>();}
+            Task::Hide(_data)            => {commands.entity(entity).remove::<HideTask>();}
+            Task::Show(_data)            => {commands.entity(entity).remove::<ShowTask>();}
+            Task::Teleport(_data)        => {commands.entity(entity).remove::<TeleportTask>();}
+            Task::Decision(_data)        => {commands.entity(entity).remove::<DecisionTask>();}
+            Task::Loop(_data)            => {commands.entity(entity).remove::<LoopTask>();}
+            Task::Rotate(_data)          => {commands.entity(entity).remove::<RotateTask>();}
         }
     }
 }
@@ -516,6 +532,21 @@ where
         return Err(Error::custom("detected duplicate integer key"));
     }
     Ok(data)
+}
+
+fn stop_job(
+    mut commands:       Commands,
+    mut jobs:           ResMut<Jobs>,
+    mut stop_job:       EventReader<StopJobEvent>
+){
+    for ev in stop_job.read(){
+        if let Some(job) = jobs.get(&ev.entity){
+            let task = job.tasks.get_current();
+            task.remove(&mut commands, ev.entity);
+        }
+        jobs.remove(&ev.entity);
+    }
+
 }
 
 /* Invented the extendable task:
