@@ -380,7 +380,7 @@ fn trigger_jobs_time(mut commands:           Commands,
 }
 
 #[derive(Component)]
-struct JobDebug;
+pub struct JobDebug;
 
 
 
