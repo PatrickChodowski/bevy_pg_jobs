@@ -5,7 +5,6 @@ loopk=0
 fail_task_id=1000
 fail_job_id=1000
 active=true
-prejob=false
 
 [tasks]
 current_task_id=0

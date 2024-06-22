@@ -259,7 +259,6 @@ pub struct Job {
     pub fail_task_id:  u32,               // ID of task to perform if task failed
     pub fail_job_id:   u32,               // ID of task to perform if job failed to start 
     pub active:        bool,              // Toggle to activate/deactivate single task
-    pub prejob:        bool,              // Flag if there needs to be a prejob
 }
 
 impl Default for Job {
@@ -274,7 +273,6 @@ impl Default for Job {
             fail_task_id:   0,
             fail_job_id:    0,
             active:         true,
-            prejob:         false
         }
     }
 }
