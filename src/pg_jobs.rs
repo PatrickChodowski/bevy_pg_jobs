@@ -14,6 +14,7 @@ use bevy::utils::default;
 use bevy::hierarchy::{BuildChildren, Parent};
 use bevy::reflect::TypePath;
 use bevy::render::color::Color;
+use bevy::log::info;
 use bevy::text::{Text2dBundle, TextStyle, Text};
 use bevy_common_assets::json::JsonAssetPlugin;
 use bevy_common_assets::toml::TomlAssetPlugin;
@@ -143,13 +144,19 @@ impl JobCatalog {
     pub fn clear(&mut self){
         self.data.clear();
     } 
-    pub fn get(&self, id: u32) -> Option<Job> {
+    pub fn get(&self, id: u32) -> Job {
         for job in self.data.iter() {
             if job.id == id {
-                return Some(job.clone());
+                return job.clone();
             }
         }
-        return None;
+        panic!("Missing job id in the catalog: {}", id);
+    }
+    pub fn start(&self, id: u32, entity: Entity) -> Job {
+        let mut job = self.get(id);
+        job.entity = Some(entity);
+        job.set_active();
+        return job;
     }
 }
 
@@ -397,19 +404,19 @@ fn stop_job(
     }
 }
 
+
 fn start_job(
     mut jobs:           ResMut<Jobs>,
     jobs_catalog:       Res<JobCatalog>,
     mut start_job:      EventReader<StartJobEvent>
 ){
     for ev in start_job.read(){
-        if let Some(mut job) = jobs_catalog.get(ev.job_id) {
-            job.entity = Some(ev.entity);
-            jobs.add(job);
-        }
+        info!(" [JOBS] Adding job {} to entity {:?}", ev.job_id, ev.entity);
+        let mut job = jobs_catalog.get(ev.job_id);
+        job.entity = Some(ev.entity);
+        jobs.add(job);
     }
 }
-
 
 #[derive(Component)]
 struct JobDebug;

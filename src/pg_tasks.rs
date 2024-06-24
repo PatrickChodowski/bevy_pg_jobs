@@ -544,7 +544,8 @@ where
 }
 
 
-/* Invented the extendable task:
+/* 
+// Invented the extendable task -> Replace task structs but keep the same task in job.
 
 fn move_to_chair_task(
     mut commands:      Commands,
@@ -588,5 +589,29 @@ fn move_to_chair_task(
         }
     }
 }
+
+*/
+
+/* 
+// Pattern of spawning the group from task
+pub fn spawn_group_task(
+    mut commands:   Commands,
+    tasks:          Query<(Entity, &SpawnGroupTask)>,
+    mut jobs:       ResMut<Jobs>,
+    jobcatalog:     Res<JobCatalog>
+){
+
+    for (task_entity, spawn_group_task) in tasks.iter(){ 
+        
+        for entity in spawn_group_task.data.iter(){
+            let mut next_job = jobcatalog.start(spawn_group_task.next_job, new_task_entity);
+            next_job.schedule = JobSchedule::Instant;
+            jobs.add(next_job);        
+        }
+        commands.entity(task_entity).remove::<SpawnGroupTask>();
+        jobs.next_task(&mut commands, &task_entity);
+    }
+}
+
 
 */
