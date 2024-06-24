@@ -253,8 +253,7 @@ pub struct SpawnTask {
 #[derive(Component, Clone, Serialize, Deserialize, Debug)]
 #[component(storage = "SparseSet")]
 pub struct SpawnGroupTask {
-    pub data:  Vec<SpawnTask>,
-    pub next_job: u32
+    pub data:  Vec<u32>
 }
 
 
@@ -493,12 +492,12 @@ fn loop_task(mut commands:   Commands,
         if let Some(maxk) = loop_task.maxk {
             if let Some(job) = jobs.get_mut(&task_entity){
                 // final iteration
-                if job.loopk >= maxk {
-                    job.loopk = 0;
+                if job.loopk()>= maxk {
+                    job.loop_reset();
                     commands.entity(task_entity).remove::<LoopTask>();
                     jobs.next_task(&mut commands, &task_entity); 
                 } else {
-                    job.loopk += 1;
+                    job.loop_incr();
                     commands.entity(task_entity).remove::<LoopTask>();
                     jobs.jump_task(&mut commands, &task_entity, loop_task.start_id); 
                 }
@@ -611,12 +610,10 @@ pub fn spawn_group_task(
 
     for (task_entity, spawn_group_task) in tasks.iter(){ 
         
-        for spawn_task in spawn_group_task.data.iter(){
+        for (index, _next_job) in spawn_group_task.data.iter().enumerate(){
             // instead of spawn_with_task:
-            let new_task_entity = commands.spawn(spawn_task.clone()).id();
-            let mut next_job = jobcatalog.start(spawn_group_task.next_job, new_task_entity);
-            next_job.schedule = JobSchedule::Instant;
-            jobs.add(next_job);        
+            let next_job = spawn_group_task.data[index];
+            jobcatalog.start(&mut commands, next_job, &mut jobs);       
         }
         commands.entity(task_entity).remove::<SpawnGroupTask>();
         jobs.next_task(&mut commands, &task_entity);

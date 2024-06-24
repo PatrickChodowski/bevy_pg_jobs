@@ -34,6 +34,6 @@ serde = "1.0.197"
 serde_json = "1.0.114"
 libm = "0.2.8"
 chrono = {version = "0.4.35", default-features = false, features = ["serde"]}
-bevy_pg_calendar = {git = "https://www.github.com/PatrickChodowski/bevy_pg_calendar", tag="1.0.8"}
+bevy_pg_calendar = {git = "https://www.github.com/PatrickChodowski/bevy_pg_calendar", tag="1.0.9"}
 rand = "0.8.5"
 bevy_common_assets = {version = "0.10.0", default-features = false, features = ["json", "toml"]}

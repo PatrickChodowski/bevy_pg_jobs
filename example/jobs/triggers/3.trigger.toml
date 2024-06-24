@@ -1,0 +1,4 @@
+trigger_id=3
+job_id=3
+schedule = {Cron = {formula = "10 * * *"}}
+active=false

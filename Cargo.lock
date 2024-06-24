@@ -713,8 +713,8 @@ dependencies = [
 
 [[package]]
 name = "bevy_pg_calendar"
-version = "1.0.8"
-source = "git+https://www.github.com/PatrickChodowski/bevy_pg_calendar?tag=1.0.8#7c2df56331954284e26b6c388222dcfdb8737d5e"
+version = "1.0.9"
+source = "git+https://www.github.com/PatrickChodowski/bevy_pg_calendar?tag=1.0.9#c2ec5d68f831d13d1192ad8270fb7ac88a7628f2"
 dependencies = [
  "bevy",
  "chrono",
