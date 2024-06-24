@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize, Deserializer, de::Error, de::Unexpected};
 use crate::utils::{get_direction, get_distance_manhattan, get_random_range_u32, move_x, move_y};
 
 use bevy_pg_calendar::prelude::{Calendar, CalendarNewHourEvent};
-use crate::pg_jobs::{Jobs, JobSchedule};
+use crate::pg_jobs::{Jobs, JobSchedule, JobCatalog};
 
 pub const SPAWN_TASK_ID:   u32 = 0;
 pub const DESPAWN_TASK_ID: u32 = 1000;
@@ -16,7 +16,7 @@ pub struct TasksPlugin;
 impl Plugin for TasksPlugin {
     fn build(&self, app: &mut App) {
         app
-        .add_systems(Update, (spawn_task, 
+        .add_systems(Update, ((spawn_group_task, spawn_task).chain(), 
                               wait_task_time, 
                               wait_idle_calendar.run_if(on_event::<CalendarNewHourEvent>()),
                               move_task,
@@ -249,6 +249,14 @@ pub struct SpawnTask {
     pub color:  Color,
     pub loc:    Vec3
 }
+
+#[derive(Component, Clone, Serialize, Deserialize, Debug)]
+#[component(storage = "SparseSet")]
+pub struct SpawnGroupTask {
+    pub data:  Vec<SpawnTask>,
+    pub next_job: u32
+}
+
 
 #[derive(Component, Clone, Copy, Serialize, Deserialize, Debug)]
 #[component(storage = "SparseSet")]
@@ -592,7 +600,7 @@ fn move_to_chair_task(
 
 */
 
-/* 
+
 // Pattern of spawning the group from task
 pub fn spawn_group_task(
     mut commands:   Commands,
@@ -603,7 +611,9 @@ pub fn spawn_group_task(
 
     for (task_entity, spawn_group_task) in tasks.iter(){ 
         
-        for entity in spawn_group_task.data.iter(){
+        for spawn_task in spawn_group_task.data.iter(){
+            // instead of spawn_with_task:
+            let new_task_entity = commands.spawn(spawn_task.clone()).id();
             let mut next_job = jobcatalog.start(spawn_group_task.next_job, new_task_entity);
             next_job.schedule = JobSchedule::Instant;
             jobs.add(next_job);        
@@ -612,6 +622,3 @@ pub fn spawn_group_task(
         jobs.next_task(&mut commands, &task_entity);
     }
 }
-
-
-*/
