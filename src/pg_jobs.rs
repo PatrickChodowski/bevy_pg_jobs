@@ -201,11 +201,7 @@ impl JobCatalog {
     }
     pub fn start(&self, commands: &mut Commands, job_id: u32, jobs: &mut ResMut<Jobs>) -> Entity {
         let jobdata = self.get(job_id);
-        let first_task = jobdata.tasks.get_current();
-        let job_entity = first_task.spawn_with_task(commands);
-        let mut job = Job::new(job_entity, jobdata);
-        job.set_active();
-        jobs.add(job);
+        let job_entity = jobdata.start(commands, jobs);
         return job_entity;
     }
 }
@@ -378,6 +374,16 @@ pub struct JobData {
     pub fail_task_id:  u32,               // ID of task to perform if task failed
     pub fail_job_id:   u32,               // ID of task to perform if job failed to start 
     pub tasks:         JobTasks, 
+}
+impl JobData {
+    pub fn start(&self, commands: &mut Commands, jobs: &mut ResMut<Jobs>) -> Entity{ 
+        let first_task = self.tasks.get_current();
+        let job_entity = first_task.spawn_with_task(commands);
+        let mut job = Job::new(job_entity, self.clone());
+        job.set_active();
+        jobs.add(job);
+        return job_entity;
+    }
 }
 
 #[derive(Clone, Debug)]
