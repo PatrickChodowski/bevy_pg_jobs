@@ -10,11 +10,28 @@ use crate::tasks::*;
 pub const SPAWN_TASK_ID:   u32 = 0;
 pub const DESPAWN_TASK_ID: u32 = 1000;
 
+#[derive(Debug, Hash, PartialEq, Eq, Clone, SystemSet)]
+enum TaskSets {
+    Dispatch,
+    Extension,
+    Simple,
+    Loop,
+    Decision
+}
+
+
 pub struct TasksPlugin;
 
 impl Plugin for TasksPlugin {
     fn build(&self, app: &mut App) {
         app
+        .configure_sets(Update, (
+            TaskSets::Dispatch, 
+            TaskSets::Extension, 
+            TaskSets::Simple, 
+            TaskSets::Decision,
+            TaskSets::Loop
+        ).chain())
         .add_systems(Update, ((spawn_group_task, spawn_task).chain(), 
                               wait_task_time, 
                               wait_idle_calendar.run_if(on_event::<CalendarNewHourEvent>()),
