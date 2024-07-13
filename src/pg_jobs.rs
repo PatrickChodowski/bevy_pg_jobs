@@ -310,6 +310,15 @@ impl Jobs {
         return None;
     }
 
+    pub fn fail_task(&mut self, commands: &mut Commands, task_entity: &Entity){
+        if let Some(job) = self.get_mut(&task_entity) {
+            let next_task_type = job.data.tasks.set_task(job.data.fail_task_id);
+            next_task_type.add_task(commands, task_entity);
+        } else {
+            panic!("no entity {:?} in jobs", task_entity);
+        }
+    }
+
     pub fn next_task(&mut self, commands: &mut Commands, task_entity: &Entity) {
         if let Some(job) = self.get_mut(&task_entity) {
             let next_task_type = job.data.tasks.next_task();
