@@ -11,7 +11,7 @@ pub const SPAWN_TASK_ID:   u32 = 0;
 pub const DESPAWN_TASK_ID: u32 = 1000;
 
 #[derive(Debug, Hash, PartialEq, Eq, Clone, SystemSet)]
-enum TaskSets {
+pub enum TaskSets {
     Dispatch,
     Extension,
     Simple,
