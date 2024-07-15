@@ -385,12 +385,15 @@ pub struct JobData {
     pub tasks:         JobTasks, 
 }
 impl JobData {
-    pub fn assign(&self, entity: Entity, jobs: &mut ResMut<Jobs>) {
+    pub fn assign(&self, commands: &mut Commands, entity: Entity, jobs: &mut ResMut<Jobs>) {
         jobs.remove_all(&entity);
         let mut job = Job::new(entity, self.clone());
         job.set_active();
         jobs.add(job);
+        let first_task = self.tasks.get_current();
+        first_task.add_task(commands, &entity);
     }
+
 
     pub fn start(&self, commands: &mut Commands, jobs: &mut ResMut<Jobs>) -> Entity{ 
         let first_task = self.tasks.get_current();
