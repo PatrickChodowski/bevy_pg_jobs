@@ -2,7 +2,6 @@
 # Spawns group of customers and assigns next job to them
 id=4
 fail_task_id=1000
-fail_job_id=1000
 
 [tasks.data.0]
 status="ToDo"

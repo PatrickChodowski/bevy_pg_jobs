@@ -396,7 +396,6 @@ pub struct JobTrigger {
 pub struct JobData {
     pub id:            u32,
     pub fail_task_id:  u32,               // ID of task to perform if task failed
-    pub fail_job_id:   u32,               // ID of task to perform if job failed to start 
     pub tasks:         JobTasks, 
 }
 impl JobData {
