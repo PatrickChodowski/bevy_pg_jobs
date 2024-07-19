@@ -349,7 +349,23 @@ impl Jobs {
     pub fn get_data(&self) -> &Vec<Job> {
         &self.data
     }
+
+    pub fn pause(&mut self, commands: &mut Commands, entity: &Entity) {
+        if let Some(job) = self.get_mut(entity){
+            job.status = JobStatus::Paused;
+            commands.entity(*entity).insert(JobPaused);
+        }
+    }
+    pub fn unpause(&mut self, commands: &mut Commands, entity: &Entity) {
+        if let Some(job) = self.get_mut(entity){
+            job.status = JobStatus::Active;
+            commands.entity(*entity).remove::<JobPaused>();
+        }
+    }
 }
+
+#[derive(Component)]
+pub struct JobPaused;
 
 #[derive(PartialEq, Copy, Clone, Serialize, Deserialize, Debug)]
 pub enum JobStatus {
