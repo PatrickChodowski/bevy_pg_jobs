@@ -2,7 +2,6 @@
 # Walk In Attention Seeking Customer
 id=3
 fail_task_id=1000
-fail_job_id=1000
 
 [tasks.data.0]
 status="ToDo"

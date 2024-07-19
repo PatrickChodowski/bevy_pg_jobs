@@ -310,6 +310,15 @@ impl Jobs {
         return None;
     }
 
+    pub fn fail_task(&mut self, commands: &mut Commands, task_entity: &Entity){
+        if let Some(job) = self.get_mut(&task_entity) {
+            let next_task_type = job.data.tasks.set_task(job.data.fail_task_id);
+            next_task_type.add_task(commands, task_entity);
+        } else {
+            panic!("no entity {:?} in jobs", task_entity);
+        }
+    }
+
     pub fn next_task(&mut self, commands: &mut Commands, task_entity: &Entity) {
         if let Some(job) = self.get_mut(&task_entity) {
             let next_task_type = job.data.tasks.next_task();
@@ -349,7 +358,6 @@ impl Jobs {
     pub fn get_data(&self) -> &Vec<Job> {
         &self.data
     }
-
     pub fn pause(&mut self, commands: &mut Commands, entity: &Entity) {
         if let Some(job) = self.get_mut(entity){
             job.status = JobStatus::Paused;
@@ -388,16 +396,18 @@ pub struct JobTrigger {
 pub struct JobData {
     pub id:            u32,
     pub fail_task_id:  u32,               // ID of task to perform if task failed
-    pub fail_job_id:   u32,               // ID of task to perform if job failed to start 
     pub tasks:         JobTasks, 
 }
 impl JobData {
-    pub fn assign(&self, entity: Entity, jobs: &mut ResMut<Jobs>) {
+    pub fn assign(&self, commands: &mut Commands, entity: Entity, jobs: &mut ResMut<Jobs>) {
         jobs.remove_all(&entity);
         let mut job = Job::new(entity, self.clone());
         job.set_active();
         jobs.add(job);
+        let first_task = self.tasks.get_current();
+        first_task.add_task(commands, &entity);
     }
+
 
     pub fn start(&self, commands: &mut Commands, jobs: &mut ResMut<Jobs>) -> Entity{ 
         let first_task = self.tasks.get_current();

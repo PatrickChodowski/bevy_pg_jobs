@@ -11,7 +11,7 @@ pub const SPAWN_TASK_ID:   u32 = 0;
 pub const DESPAWN_TASK_ID: u32 = 1000;
 
 #[derive(Debug, Hash, PartialEq, Eq, Clone, SystemSet)]
-enum TaskSets {
+pub enum TaskSets {
     Dispatch,
     Extension,
     Simple,
@@ -145,7 +145,13 @@ impl Default for TaskData {
 }
 
 impl TaskData {
-    pub fn new(id: u32, next: u32, task: Task) -> Self {
+    pub fn first(id: u32, task: Task) -> Self {
+        TaskData{id, task, status: TaskStatus::ToDo, ..default()}
+    }
+    pub fn firstn(id: u32, next: u32, task: Task) -> Self {
+        TaskData{id, next: Some(next), task, status: TaskStatus::ToDo, ..default()}
+    }
+    pub fn idtn(id: u32, next: u32, task: Task) -> Self {
         TaskData{id, next: Some(next), task, status: TaskStatus::Waiting}
     }
     pub fn idt(id: u32, task: Task) -> Self {
