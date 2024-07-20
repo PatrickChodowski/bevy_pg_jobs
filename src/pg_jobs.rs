@@ -373,7 +373,9 @@ impl Jobs {
 }
 
 #[derive(Component)]
+#[component(storage = "SparseSet")]
 pub struct JobPaused;
+
 
 #[derive(PartialEq, Copy, Clone, Serialize, Deserialize, Debug)]
 pub enum JobStatus {
