@@ -275,7 +275,7 @@ pub fn despawn_task(
 
     for task_entity in tasks.iter(){
         commands.entity(task_entity).despawn_recursive();
-        jobs.remove_all(&task_entity);
+        jobs.remove_all(&mut commands, &task_entity);
     }
 
 }

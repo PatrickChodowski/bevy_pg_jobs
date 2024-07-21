@@ -107,18 +107,18 @@ impl Task {
         }
     }
 
-    pub fn remove(&self, commands: &mut Commands, entity: Entity){
+    pub fn remove(&self, commands: &mut Commands, entity: &Entity){
         match &self {
-            Task::Spawn(_data)           => {commands.entity(entity).remove::<SpawnTask>();}
-            Task::Despawn(_data)         => {commands.entity(entity).remove::<DespawnTask>();}
-            Task::Move(_data)            => {commands.entity(entity).remove::<MoveTask>();}
-            Task::Wait(_data)            => {commands.entity(entity).remove::<WaitTask>();}
-            Task::Hide(_data)            => {commands.entity(entity).remove::<HideTask>();}
-            Task::Show(_data)            => {commands.entity(entity).remove::<ShowTask>();}
-            Task::Teleport(_data)        => {commands.entity(entity).remove::<TeleportTask>();}
-            Task::Decision(_data)        => {commands.entity(entity).remove::<DecisionTask>();}
-            Task::Loop(_data)            => {commands.entity(entity).remove::<LoopTask>();}
-            Task::Rotate(_data)          => {commands.entity(entity).remove::<RotateTask>();}
+            Task::Spawn(_data)           => {commands.entity(*entity).remove::<SpawnTask>();}
+            Task::Despawn(_data)         => {commands.entity(*entity).remove::<DespawnTask>();}
+            Task::Move(_data)            => {commands.entity(*entity).remove::<MoveTask>();}
+            Task::Wait(_data)            => {commands.entity(*entity).remove::<WaitTask>();}
+            Task::Hide(_data)            => {commands.entity(*entity).remove::<HideTask>();}
+            Task::Show(_data)            => {commands.entity(*entity).remove::<ShowTask>();}
+            Task::Teleport(_data)        => {commands.entity(*entity).remove::<TeleportTask>();}
+            Task::Decision(_data)        => {commands.entity(*entity).remove::<DecisionTask>();}
+            Task::Loop(_data)            => {commands.entity(*entity).remove::<LoopTask>();}
+            Task::Rotate(_data)          => {commands.entity(*entity).remove::<RotateTask>();}
         }
     }
 }

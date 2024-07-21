@@ -336,20 +336,29 @@ impl Jobs {
             panic!("no entity {:?} in jobs", task_entity);
         }
     }
-    pub fn index(&self, entity: Entity) -> Option<usize> {
-        return self.data.iter().position(|x| x.entity == entity);
+    pub fn index(&self, entity: &Entity) -> Option<usize> {
+        return self.data.iter().position(|x| &x.entity == entity);
     }
-    pub fn upsert(&mut self, entity: Entity, job: Job) {
+    fn clean_task(&mut self, commands: &mut Commands, entity: &Entity){
+        if let Some(job) = self.get(&entity){
+            let task = job.data.tasks.get_current();
+            task.remove(commands, entity);
+        }
+    }
+    pub fn upsert(&mut self, commands: &mut Commands, entity: &Entity, job: Job) {
         if let Some(index) = self.index(entity){
+            self.clean_task(commands, entity);
             self.data[index] = job;
         } else {
             self.data.push(job);
         }
     }
-    pub fn remove(&mut self, job_id: u32, entity: &Entity) {
+    pub fn remove(&mut self, commands: &mut Commands, job_id: u32, entity: &Entity) {
+        self.clean_task(commands, entity);
         self.data.retain(|x| !(&x.entity == entity && x.data.id == job_id))
     }
-    pub fn remove_all(&mut self, entity: &Entity) {
+    pub fn remove_all(&mut self, commands: &mut Commands, entity: &Entity) {
+        self.clean_task(commands, entity);
         self.data.retain(|x| &x.entity != entity)
     }
     pub fn clear(&mut self) {
@@ -402,7 +411,7 @@ pub struct JobData {
 }
 impl JobData {
     pub fn assign(&self, commands: &mut Commands, entity: Entity, jobs: &mut ResMut<Jobs>) {
-        jobs.remove_all(&entity);
+        jobs.remove_all(commands, &entity);
         let mut job = Job::new(entity, self.clone());
         job.set_active();
         jobs.add(job);
@@ -531,13 +540,8 @@ fn stop_job(
     jobdebugs:          Query<(Entity, &Parent), With<JobDebug>>
 ){
     for ev in stop_job.read(){
-        if let Some(job) = jobs.get(&ev.entity){
-            let task = job.data.tasks.get_current();
-            task.remove(&mut commands, ev.entity);
-        }
-
         info!(" [JOBS] Removing all jobs for entity: {:?}", ev.entity);
-        jobs.remove_all(&ev.entity);
+        jobs.remove_all(&mut commands, &ev.entity);
 
         for (text_entity, task_entity) in jobdebugs.iter(){
             if **task_entity == ev.entity {
