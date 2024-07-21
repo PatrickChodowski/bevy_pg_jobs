@@ -357,7 +357,10 @@ impl Jobs {
         self.clean_task(commands, entity);
         self.data.retain(|x| !(&x.entity == entity && x.data.id == job_id))
     }
-    pub fn remove_all(&mut self, commands: &mut Commands, entity: &Entity) {
+    pub fn remove_all(&mut self, entity: &Entity) {
+        self.data.retain(|x| &x.entity != entity)
+    }
+    pub fn remove_all_clean(&mut self, commands: &mut Commands, entity: &Entity) {
         self.clean_task(commands, entity);
         self.data.retain(|x| &x.entity != entity)
     }
@@ -411,7 +414,7 @@ pub struct JobData {
 }
 impl JobData {
     pub fn assign(&self, commands: &mut Commands, entity: Entity, jobs: &mut ResMut<Jobs>) {
-        jobs.remove_all(commands, &entity);
+        jobs.remove_all_clean(commands, &entity);
         let mut job = Job::new(entity, self.clone());
         job.set_active();
         jobs.add(job);
@@ -541,7 +544,7 @@ fn stop_job(
 ){
     for ev in stop_job.read(){
         info!(" [JOBS] Removing all jobs for entity: {:?}", ev.entity);
-        jobs.remove_all(&mut commands, &ev.entity);
+        jobs.remove_all_clean(&mut commands, &ev.entity);
 
         for (text_entity, task_entity) in jobdebugs.iter(){
             if **task_entity == ev.entity {
