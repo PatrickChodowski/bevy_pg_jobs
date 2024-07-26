@@ -193,11 +193,14 @@ impl JobCatalog {
         }
         panic!("Missing job id in the catalog: {}", id);
     }
-    pub fn assign(&self, job_id: u32, entity: Entity, jobs: &mut ResMut<Jobs>){
+    pub fn assign(&self, commands: &mut Commands, job_id: u32, entity: Entity, jobs: &mut ResMut<Jobs>){
+        jobs.remove_all_clean(commands, &entity);
         let jobdata = self.get(job_id);
-        let mut job = Job::new(entity, jobdata);
+        let mut job = Job::new(entity, jobdata.clone());
         job.set_active();
         jobs.add(job);
+        let first_task = jobdata.tasks.get_current();
+        first_task.add_task(commands, &entity);
     }
     pub fn start(&self, commands: &mut Commands, job_id: u32, jobs: &mut ResMut<Jobs>) -> Entity {
         let jobdata = self.get(job_id);
@@ -557,13 +560,14 @@ fn stop_job(
 }
 
 fn start_job(
+    mut commands:       Commands,
     mut jobs:           ResMut<Jobs>,
     jobs_catalog:       Res<JobCatalog>,
     mut start_job:      EventReader<StartJobEvent>
 ){
     for ev in start_job.read(){
         info!(" [JOBS] Adding job {} to entity {:?}", ev.job_id, ev.entity);
-        jobs_catalog.assign(ev.job_id, ev.entity, &mut jobs);
+        jobs_catalog.assign(&mut commands, ev.job_id, ev.entity, &mut jobs);
     }
 }
 
