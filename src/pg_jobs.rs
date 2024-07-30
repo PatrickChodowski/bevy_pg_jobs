@@ -39,10 +39,12 @@ impl Default for PGJobsPlugin {
 impl Plugin for PGJobsPlugin {
     fn build(&self, app: &mut App) {
         app
-        .add_plugins(JsonAssetPlugin::<JobData>::new(&["jobdata.json"]))
-        .add_plugins(TomlAssetPlugin::<JobData>::new(&["jobdata.toml"]))
+        .add_plugins(JsonAssetPlugin::<JobData>::new(&["job.json"]))
+        .add_plugins(TomlAssetPlugin::<JobData>::new(&["job.toml"]))
         .add_plugins(JsonAssetPlugin::<JobTrigger>::new(&["trigger.json"]))
         .add_plugins(TomlAssetPlugin::<JobTrigger>::new(&["trigger.toml"]))
+        .add_plugins(JsonAssetPlugin::<JobTriggers>::new(&["triggers.json"]))
+        .add_plugins(TomlAssetPlugin::<JobTriggers>::new(&["triggers.toml"]))
 
         .insert_resource(JobSettings::init(self.active, self.debug))
         .insert_resource(JobCatalog::init())
@@ -119,6 +121,7 @@ fn track(
     mut job_ready:          Local<JobsReady>, 
     mut ass_jobdata:        ResMut<Assets<JobData>>,
     mut ass_jobtrigger:     ResMut<Assets<JobTrigger>>,
+    mut ass_triggers:       ResMut<Assets<JobTriggers>>,
     mut jobs_catalog:       ResMut<JobCatalog>,
     mut jobs_scheduler:     ResMut<JobScheduler>,
     loaded_jobdata:         Res<LoadedJobDataHandles>,
@@ -149,6 +152,13 @@ fn track(
         for (_job_id, jobtrigger) in ass_jobtrigger.iter_mut(){
             jobtrigger.schedule.parse();
             jobs_scheduler.add(jobtrigger.clone());
+        }
+
+        for (_job_id, trigger_data) in ass_triggers.iter_mut(){
+            for jobtrigger in trigger_data.data.iter_mut(){
+                jobtrigger.schedule.parse();
+                jobs_scheduler.add(jobtrigger.clone());
+            }
         }
 
         commands.remove_resource::<LoadedJobDataHandles>();
@@ -399,6 +409,11 @@ pub enum JobStatus {
     Done,
     Paused,
     Inactive
+}
+
+#[derive(Serialize, Deserialize, Asset, TypePath, Clone, Debug)]
+pub struct JobTriggers {
+    pub data: Vec<JobTrigger>
 }
 
 #[derive(Serialize, Deserialize, Asset, TypePath, Clone, Debug)]
