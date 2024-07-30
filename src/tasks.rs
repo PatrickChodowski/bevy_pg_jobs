@@ -2,7 +2,7 @@ use bevy::prelude::*;
 use bevy::sprite::MaterialMesh2dBundle;
 use crate::utils::{get_direction, get_distance_manhattan, get_random_range_u32, move_x, move_y};
 use serde::{Deserialize, Serialize};
-use crate::pg_jobs::{Jobs, JobSchedule, JobCatalog};
+use crate::pg_jobs::{Jobs, JobSchedule, JobCatalog, JobID};
 use bevy_pg_calendar::prelude::Calendar;
 
 #[derive(Component, Clone, Copy, Serialize, Deserialize, Debug)]
@@ -15,7 +15,7 @@ pub struct SpawnTask {
 #[derive(Component, Clone, Serialize, Deserialize, Debug)]
 #[component(storage = "SparseSet")]
 pub struct SpawnGroupTask {
-    pub data:  Vec<u32>
+    pub data:  Vec<JobID>
 }
 
 

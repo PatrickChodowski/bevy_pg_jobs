@@ -1,6 +1,6 @@
 
 # Walk In Attention Seeking Customer
-id=3
+id="WalkInAttentionCustomer"
 fail_task_id=1000
 
 [tasks.data.0]

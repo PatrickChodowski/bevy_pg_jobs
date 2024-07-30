@@ -21,6 +21,7 @@ use bevy_common_assets::toml::TomlAssetPlugin;
 use bevy_pg_calendar::prelude::{Calendar, CalendarNewHourEvent, Cron};
 use serde::{Deserialize, Serialize, Deserializer};
 use std::hash::{DefaultHasher, Hash, Hasher};
+use std::fmt;
 
 use super::pg_tasks::JobTasks;
 
@@ -79,7 +80,7 @@ pub struct StopJobEvent {
 
 #[derive(Event)]
 pub struct StartJobEvent {
-    pub job_id: u32,
+    pub job_id: JobID,
     pub entity: Entity
 }
 
@@ -196,7 +197,7 @@ impl JobCatalog {
     pub fn clear(&mut self){
         self.data.clear();
     } 
-    pub fn get(&self, id: u32) -> JobData {
+    pub fn get(&self, id: JobID) -> JobData {
         for job in self.data.iter() {
             if job.id == id {
                 return job.clone();
@@ -204,7 +205,7 @@ impl JobCatalog {
         }
         panic!("Missing job id in the catalog: {}", id);
     }
-    pub fn assign(&self, commands: &mut Commands, job_id: u32, entity: Entity, jobs: &mut ResMut<Jobs>){
+    pub fn assign(&self, commands: &mut Commands, job_id: JobID, entity: Entity, jobs: &mut ResMut<Jobs>){
         jobs.remove_all_clean(commands, &entity);
         let jobdata = self.get(job_id);
         let mut job = Job::new(entity, jobdata.clone());
@@ -213,7 +214,7 @@ impl JobCatalog {
         let first_task = jobdata.tasks.get_current();
         first_task.add_task(commands, &entity);
     }
-    pub fn start(&self, commands: &mut Commands, job_id: u32, jobs: &mut ResMut<Jobs>) -> Entity {
+    pub fn start(&self, commands: &mut Commands, job_id: JobID, jobs: &mut ResMut<Jobs>) -> Entity {
         let jobdata = self.get(job_id);
         let job_entity = jobdata.start(commands, jobs);
         return job_entity;
@@ -367,7 +368,7 @@ impl Jobs {
             self.data.push(job);
         }
     }
-    pub fn remove(&mut self, commands: &mut Commands, job_id: u32, entity: &Entity) {
+    pub fn remove(&mut self, commands: &mut Commands, job_id: JobID, entity: &Entity) {
         self.clean_task(commands, entity);
         self.data.retain(|x| !(&x.entity == entity && x.data.id == job_id))
     }
@@ -420,15 +421,14 @@ pub struct JobTriggers {
 #[derive(Serialize, Deserialize, Asset, TypePath, Clone, Debug)]
 pub struct JobTrigger {
     pub trigger_id:    u32,
-    pub job_id:        u32,
+    pub job_id:        JobID,
     pub schedule:      JobSchedule,
     pub active:        bool
 }
 
 #[derive(Serialize, Deserialize, Asset, TypePath, Clone, Debug)]
 pub struct JobData {
-    #[serde(deserialize_with = "from_job_name")]
-    pub id:            u32,
+    pub id:            JobID,
     pub fail_task_id:  u32,               // ID of task to perform if task failed
     pub tasks:         JobTasks, 
 }
@@ -648,13 +648,35 @@ fn debug_jobs(
     }
 }
 
-fn from_job_name<'de, D>(deserializer: D) -> Result<u32, D::Error>
-where
-    D: Deserializer<'de>,
-{
-    let string_job_id: String = Deserialize::deserialize(deserializer)?;
-    let mut s = DefaultHasher::new();
-    string_job_id.hash(&mut s);
-    let hashed_id = s.finish() as u32;
-    return Ok(hashed_id);
+
+#[derive(Serialize, Asset, TypePath, Clone, Copy, Debug, PartialEq, Eq)]
+pub struct JobID(pub u32);
+
+impl fmt::Display for JobID {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "JobID: {}", self.0)
+    }
+}
+
+impl JobID {
+    pub fn from_str(job_string: &str) -> Self {
+        let mut s = DefaultHasher::new();
+        job_string.hash(&mut s);
+        let hashed_id = JobID(s.finish() as u32);
+        return hashed_id;
+    }
+}
+
+impl<'de> Deserialize<'de> for JobID {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let string_job_id: String = Deserialize::deserialize(deserializer)?;
+        let mut s = DefaultHasher::new();
+        string_job_id.hash(&mut s);
+        let hashed_id = JobID(s.finish() as u32);
+        info!("Job String: {} Hashed ID: {}", string_job_id, hashed_id);
+        return Ok(hashed_id);
+    }
 }

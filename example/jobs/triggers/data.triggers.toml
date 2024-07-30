@@ -1,41 +1,11 @@
 [[data]]
 trigger_id=0
-job_id=0
+job_id="JobName0"
 schedule = {Cron = {formula = "7 * * *"}}
 active=true
 
 [[data]]
 trigger_id=1
-job_id=1
+job_id="JobName1"
 schedule = {Cron = {formula = "8 * * *"}}
-active=true
-
-[[data]]
-trigger_id=2
-job_id=2
-schedule = {Cron = {formula = "9 * * *"}}
-active=true
-
-[[data]]
-trigger_id=3
-job_id=3
-schedule = {Cron = {formula = "10 * * *"}}
-active=false
-
-[[data]]
-trigger_id=4
-job_id=4
-schedule = {Cron = {formula = "7;8;9 * * *"}}
-active=false
-
-[[data]]
-trigger_id=5
-job_id=5
-schedule = {Cron = {formula = "7 * * *"}}
-active=true
-
-[[data]]
-trigger_id=6
-job_id=6
-schedule = {Cron = {formula = "7 * * *"}}
 active=true
