@@ -19,7 +19,8 @@ use bevy::text::{Text2dBundle, TextStyle, Text};
 use bevy_common_assets::json::JsonAssetPlugin;
 use bevy_common_assets::toml::TomlAssetPlugin;
 use bevy_pg_calendar::prelude::{Calendar, CalendarNewHourEvent, Cron};
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Serialize, Deserializer};
+use std::hash::{DefaultHasher, Hash, Hasher};
 
 use super::pg_tasks::JobTasks;
 
@@ -426,6 +427,7 @@ pub struct JobTrigger {
 
 #[derive(Serialize, Deserialize, Asset, TypePath, Clone, Debug)]
 pub struct JobData {
+    #[serde(deserialize_with = "from_job_name")]
     pub id:            u32,
     pub fail_task_id:  u32,               // ID of task to perform if task failed
     pub tasks:         JobTasks, 
@@ -644,4 +646,15 @@ fn debug_jobs(
             commands.entity(text_entity).despawn();
         }
     }
+}
+
+fn from_job_name<'de, D>(deserializer: D) -> Result<u32, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let string_job_id: String = Deserialize::deserialize(deserializer)?;
+    let mut s = DefaultHasher::new();
+    string_job_id.hash(&mut s);
+    let hashed_id = s.finish() as u32;
+    return Ok(hashed_id);
 }
