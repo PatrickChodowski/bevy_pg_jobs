@@ -129,8 +129,6 @@ pub struct TaskData {
     #[serde(skip_deserializing)]
     pub id:     u32,
     pub next:   Option<u32>,
-    #[serde(default)]
-    pub status: TaskStatus,
     pub task:   Task  
 }
 impl Default for TaskData {
@@ -138,21 +136,14 @@ impl Default for TaskData {
         TaskData{
             id: SPAWN_TASK_ID, 
             next: None, 
-            status: TaskStatus::Waiting, 
             task: Task::Despawn(DespawnTask)
         }
     }
 }
 
 impl TaskData {
-    pub fn first(id: u32, task: Task) -> Self {
-        TaskData{id, task, status: TaskStatus::ToDo, ..default()}
-    }
-    pub fn firstn(id: u32, next: u32, task: Task) -> Self {
-        TaskData{id, next: Some(next), task, status: TaskStatus::ToDo, ..default()}
-    }
     pub fn idtn(id: u32, next: u32, task: Task) -> Self {
-        TaskData{id, next: Some(next), task, status: TaskStatus::Waiting}
+        TaskData{id, next: Some(next), task}
     }
     pub fn idt(id: u32, task: Task) -> Self {
         TaskData{id, task, ..default()}
@@ -192,12 +183,10 @@ impl JobTasks { pub fn new() -> Self {
         let current_task = &self.data.get(&self.current_task_id).unwrap();
         if let Some(job_entity) = job_entity {
             current_task.task.add_task(commands, &job_entity);
-            self.set_current_status(TaskStatus::Active);
             info!(" [Tasks]: Starting job for entity: {:?}", job_entity);
             return job_entity;
         } else {
             let entity = current_task.task.spawn_with_task(commands);
-            self.set_current_status(TaskStatus::Active);
             info!(" [Tasks]: Spawning job entity: {:?}", entity);
             return entity;
         }
@@ -205,35 +194,12 @@ impl JobTasks { pub fn new() -> Self {
 
     pub fn set_task(&mut self, next_task_id: u32) -> &Task {
         self.current_task_id = next_task_id;
-        self.set_current_status(TaskStatus::ToDo);
         return self.get_current();
     }
     
     pub fn next_task(&mut self) -> &Task {
-        match self.get_current_status() {
-            &TaskStatus::Done => {
-                // Should be only if loop was requested to close
-                self.current_task_id = self.get_next_id();
-                self.set_current_status(TaskStatus::ToDo);
-                return self.get_current();
-            }
-            &TaskStatus::Active => {
-                self.set_current_status(TaskStatus::Done);
-                self.current_task_id = self.get_next_id();
-                self.set_current_status(TaskStatus::ToDo);
-                return self.get_current();
-            }
-            &TaskStatus::ToDo => {
-                // When the loop task finished
-                self.set_current_status(TaskStatus::Done);
-                self.current_task_id = self.get_next_id();
-                self.set_current_status(TaskStatus::ToDo);
-                return self.get_current();
-            }
-            _ => {
-                panic!("Not supposed to happen {:?}", self.current_task_id )
-            }
-        }
+        self.current_task_id = self.get_next_id();
+        return self.get_current();
     }
     pub fn get_current(&self) -> &Task {
         if let Some(task_data) = self.data.get(&self.current_task_id) {
@@ -241,14 +207,6 @@ impl JobTasks { pub fn new() -> Self {
         } else {
             panic!("no task for {}", self.current_task_id);
         }
-    }
-    pub fn set_current_status(&mut self, status: TaskStatus) {
-        if let Some(task_data) = self.data.get_mut(&self.current_task_id){
-            task_data.status = status;
-        }
-    }
-    pub fn get_current_status(&mut self) -> &TaskStatus {
-        &self.data.get(&self.current_task_id).unwrap().status
     }
 }
 

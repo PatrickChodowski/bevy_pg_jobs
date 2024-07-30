@@ -4,7 +4,6 @@ id="WalkInAttentionCustomer"
 fail_task_id=1000
 
 [tasks.data.0]
-status="ToDo"
 task = {type = "Spawn", mlib="Customer"}
 
 [tasks.data.1]

@@ -4,7 +4,6 @@ id="CustomerGroup"
 fail_task_id=1000
 
 [tasks.data.0]
-status="ToDo"
 next = 1000
 task = {type = "SpawnGroup", data=[0, 0]} # list of different job ids to spawn
 
