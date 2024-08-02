@@ -5,6 +5,13 @@ use serde::{Deserialize, Serialize};
 use crate::pg_jobs::{Jobs, JobSchedule, JobCatalog, JobID};
 use bevy_pg_calendar::prelude::Calendar;
 
+const TASK_DEBUG: bool = false;
+macro_rules! tdbg {
+    ($a:expr)=>{
+        {if TASK_DEBUG {info!(" [AI] {}", $a)};}
+    }
+}
+
 #[derive(Component, Clone, Copy, Serialize, Deserialize, Debug)]
 #[component(storage = "SparseSet")]
 pub struct SpawnTask {
