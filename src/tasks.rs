@@ -12,65 +12,76 @@ macro_rules! tdbg {
     }
 }
 
-#[derive(Component, Clone, Copy, Serialize, Deserialize, Debug)]
+#[derive(Component, Clone, Copy, Serialize, Deserialize, Debug, Reflect)]
+#[reflect(Component)]
 #[component(storage = "SparseSet")]
 pub struct SpawnTask {
     pub color:  Color,
     pub loc:    Vec3
 }
 
-#[derive(Component, Clone, Serialize, Deserialize, Debug)]
+#[derive(Component, Clone, Serialize, Deserialize, Debug, Reflect)]
+#[reflect(Component)]
 #[component(storage = "SparseSet")]
 pub struct SpawnGroupTask {
     pub data:  Vec<JobID>
 }
 
 
-#[derive(Component, Clone, Copy, Serialize, Deserialize, Debug)]
+#[derive(Component, Clone, Copy, Serialize, Deserialize, Debug, Reflect)]
+#[reflect(Component)]
 #[component(storage = "SparseSet")]
 pub struct DespawnTask;
 
-#[derive(Component, Clone, Copy, Serialize, Deserialize, Debug)]
+#[derive(Component, Clone, Copy, Serialize, Deserialize, Debug, Reflect)]
+#[reflect(Component)]
 #[component(storage = "SparseSet")]
 pub struct MoveTask {
     pub source:         Vec3,
     pub target:         Vec3,
 }
 
-#[derive(Component, Clone, Copy, Serialize, Deserialize, Debug)]
+#[derive(Component, Clone, Copy, Serialize, Deserialize, Debug, Reflect)]
+#[reflect(Component)]
 #[component(storage = "SparseSet")]
 pub struct RotateTask {
     pub angle:      f32
 }
 
-#[derive(Component, Clone, Serialize, Deserialize, Debug)]
+#[derive(Component, Clone, Serialize, Deserialize, Debug, Reflect)]
+#[reflect(Component)]
 #[component(storage = "SparseSet")]
 pub struct WaitTask {
     pub schedule: JobSchedule
 }
 
-#[derive(Component, Clone, Copy, Serialize, Deserialize, Debug)]
+#[derive(Component, Clone, Copy, Serialize, Deserialize, Debug, Reflect)]
+#[reflect(Component)]
 #[component(storage = "SparseSet")]
 pub struct HideTask;
 
-#[derive(Component, Clone, Copy, Serialize, Deserialize, Debug)]
+#[derive(Component, Clone, Copy, Serialize, Deserialize, Debug, Reflect)]
+#[reflect(Component)]
 #[component(storage = "SparseSet")]
 pub struct ShowTask;
 
-#[derive(Component, Clone, Copy, Serialize, Deserialize, Debug)]
+#[derive(Component, Clone, Copy, Serialize, Deserialize, Debug, Reflect)]
+#[reflect(Component)]
 #[component(storage = "SparseSet")]
 pub struct TeleportTask {
     pub loc: Vec3
 }
 
-#[derive(Component, Clone, Copy, Serialize, Deserialize, Debug)]
+#[derive(Component, Clone, Copy, Serialize, Deserialize, Debug, Reflect)]
+#[reflect(Component)]
 #[component(storage = "SparseSet")]
 pub struct DecisionTask {
     pub opt1: u32,
     pub opt2: u32
 }
 
-#[derive(Component, Clone, Copy, Serialize, Deserialize, Debug)]
+#[derive(Component, Clone, Copy, Serialize, Deserialize, Debug, Reflect)]
+#[reflect(Component)]
 #[component(storage = "SparseSet")]
 pub struct LoopTask {
     pub start_id:  u32, // Loops the tasks specified in the vector

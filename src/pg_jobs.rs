@@ -4,6 +4,7 @@ use bevy::ecs::schedule::common_conditions::{on_event, resource_changed, resourc
 use bevy::ecs::schedule::{IntoSystemConfigs, Condition};
 use bevy::ecs::entity::Entity;
 use bevy::ecs::event::{Event, EventReader};
+use bevy::ecs::reflect::ReflectResource;
 use bevy::ecs::component::Component;
 use bevy::ecs::system::{Commands, Local, Resource, Res, ResMut, Query};
 use bevy::ecs::query::With;
@@ -13,8 +14,8 @@ use bevy::hierarchy::DespawnRecursiveExt;
 use bevy::utils::default;
 use bevy::hierarchy::{BuildChildren, Parent};
 use bevy::log::info;
-use bevy::reflect::TypePath;
-use bevy::render::color::Color;
+use bevy::reflect::{TypePath, Reflect};
+use bevy::color::Color;
 use bevy::text::{Text2dBundle, TextStyle, Text};
 use bevy_common_assets::json::JsonAssetPlugin;
 use bevy_common_assets::toml::TomlAssetPlugin;
@@ -41,6 +42,14 @@ impl Default for PGJobsPlugin {
 impl Plugin for PGJobsPlugin {
     fn build(&self, app: &mut App) {
         app
+        .register_type::<Jobs>()
+        .register_type::<Job>()
+        .register_type::<JobID>()
+        .register_type::<JobData>()
+        .register_type::<JobTasks>()
+        .register_type::<JobStatus>()
+        .register_type::<JobSchedule>()
+
         .add_plugins(JsonAssetPlugin::<JobData>::new(&["job.json"]))
         .add_plugins(TomlAssetPlugin::<JobData>::new(&["job.toml"]))
         .add_plugins(JsonAssetPlugin::<JobTrigger>::new(&["trigger.json"]))
@@ -295,7 +304,8 @@ impl JobScheduler {
         }
     }
 }
-#[derive(Resource)]
+#[derive(Resource, Reflect)]
+#[reflect(Resource)]
 pub struct Jobs {
     data:   Vec<Job>
 }
@@ -404,7 +414,7 @@ impl Jobs {
 pub struct JobPaused;
 
 
-#[derive(PartialEq, Copy, Clone, Serialize, Deserialize, Debug)]
+#[derive(PartialEq, Copy, Clone, Serialize, Deserialize, Debug, Reflect)]
 pub enum JobStatus {
     ToDo,
     Active,
@@ -426,7 +436,7 @@ pub struct JobTrigger {
     pub active:        bool
 }
 
-#[derive(Serialize, Deserialize, Asset, TypePath, Clone, Debug)]
+#[derive(Serialize, Deserialize, Asset, Clone, Debug, Reflect)]
 pub struct JobData {
     pub id:            JobID,
     pub fail_task_id:  u32,               // ID of task to perform if task failed
@@ -453,7 +463,7 @@ impl JobData {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Reflect)]
 pub struct Job {
     pub entity:        Entity,           
     loopk:             u32,              // Used for loops to count iterations
@@ -490,7 +500,7 @@ impl Job {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Reflect)]
 pub enum JobSchedule {      
     Instant,             // Start instantly       
     Cron(Cron),          // Waiting for Cron 
@@ -649,7 +659,7 @@ fn debug_jobs(
 }
 
 
-#[derive(Serialize, Asset, TypePath, Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Serialize, Asset, Clone, Copy, Debug, PartialEq, Eq, Reflect)]
 pub struct JobID(pub u32);
 
 impl fmt::Display for JobID {

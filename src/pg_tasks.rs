@@ -25,6 +25,18 @@ pub struct TasksPlugin;
 impl Plugin for TasksPlugin {
     fn build(&self, app: &mut App) {
         app
+        .register_type::<TaskData>()
+        .register_type::<Task>()
+        .register_type::<SpawnTask>()
+        .register_type::<DespawnTask>()
+        .register_type::<MoveTask>()
+        .register_type::<RotateTask>()
+        .register_type::<WaitTask>()
+        .register_type::<HideTask>()
+        .register_type::<ShowTask>()
+        .register_type::<TeleportTask>()
+        .register_type::<DecisionTask>()
+        .register_type::<LoopTask>()
         .configure_sets(Update, (
             TaskSets::Dispatch, 
             TaskSets::Extension, 
@@ -49,7 +61,7 @@ impl Plugin for TasksPlugin {
 }
 
 // Fill it up with the tasks for the game
-#[derive(Component, Clone, Serialize, Deserialize, Debug)]
+#[derive(Component, Clone, Serialize, Deserialize, Debug, Reflect)]
 #[serde(tag = "type")]
 pub enum Task {
     Spawn(SpawnTask),
@@ -124,7 +136,7 @@ impl Task {
 }
 
 // TaskData
-#[derive(Clone, Serialize, Deserialize, Debug)]
+#[derive(Clone, Serialize, Deserialize, Debug, Reflect)]
 pub struct TaskData {
     #[serde(skip_deserializing)]
     pub id:     u32,
@@ -151,7 +163,7 @@ impl TaskData {
 }
 
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug, Reflect)]
 pub struct JobTasks {
     #[serde(deserialize_with = "deserialize_jobtask_data")]
     pub data:                   HashMap<u32, TaskData>,  
