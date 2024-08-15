@@ -304,7 +304,7 @@ impl JobScheduler {
         }
     }
 }
-#[derive(Resource, Reflect)]
+#[derive(Resource, Reflect, Serialize, Deserialize)]
 #[reflect(Resource)]
 pub struct Jobs {
     data:   Vec<Job>
@@ -463,7 +463,7 @@ impl JobData {
     }
 }
 
-#[derive(Clone, Debug, Reflect)]
+#[derive(Clone, Debug, Reflect, Serialize, Deserialize)]
 pub struct Job {
     pub entity:        Entity,           
     loopk:             u32,              // Used for loops to count iterations
