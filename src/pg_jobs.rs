@@ -304,7 +304,7 @@ impl JobScheduler {
         }
     }
 }
-#[derive(Resource, Reflect, Serialize, Deserialize)]
+#[derive(Resource, Reflect, Serialize, Deserialize, Clone)]
 #[reflect(Resource)]
 pub struct Jobs {
     data:   Vec<Job>
