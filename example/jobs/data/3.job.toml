@@ -1,6 +1,7 @@
 
 # Walk In Attention Seeking Customer
 id="WalkInAttentionCustomer"
+label="WalkInAttentionCustomer"
 fail_task_id=1000
 
 [tasks.data.0]

@@ -439,6 +439,7 @@ pub struct JobTrigger {
 #[derive(Serialize, Deserialize, Asset, Clone, Debug, Reflect)]
 pub struct JobData {
     pub id:            JobID,
+    pub label:         String,
     pub fail_task_id:  u32,               // ID of task to perform if task failed
     pub tasks:         JobTasks, 
 }
@@ -468,6 +469,7 @@ pub struct Job {
     pub entity:        Entity,           
     loopk:             u32,              // Used for loops to count iterations
     status:            JobStatus,
+    #[serde(serialize_with = "serialize_job_data")]
     pub data:          JobData,          // List of tasks to be performed by entity
 }
 
@@ -689,4 +691,26 @@ impl<'de> Deserialize<'de> for JobID {
         info!("Job String: {} Hashed ID: {}", string_job_id, hashed_id);
         return Ok(hashed_id);
     }
+}
+
+#[derive(Serialize)]
+struct SerializeJobData {
+    id:           String,
+    label:        String,
+    fail_task_id: u32,
+    tasks:        JobTasks
+}
+
+fn serialize_job_data<S>(jd: &JobData, serializer: S) -> Result<S::Ok, S::Error>
+where
+    S: Serializer
+{
+    let sjd = SerializeJobData {
+        id: jd.label.clone(),
+        label: jd.label.clone(),
+        fail_task_id: jd.fail_task_id,
+        tasks: jd.tasks.clone()
+    };
+
+    sjd.serialize(serializer)
 }

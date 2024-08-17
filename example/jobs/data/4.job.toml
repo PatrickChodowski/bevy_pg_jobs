@@ -1,6 +1,7 @@
 
 # Spawns group of customers and assigns next job to them
 id="CustomerGroup"
+label="CustomerGroup"
 fail_task_id=1000
 
 [tasks.data.0]
