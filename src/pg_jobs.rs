@@ -4,7 +4,7 @@ use bevy::ecs::schedule::common_conditions::{on_event, resource_changed, resourc
 use bevy::ecs::schedule::{IntoSystemConfigs, Condition};
 use bevy::ecs::entity::Entity;
 use bevy::ecs::event::{Event, EventReader};
-use bevy::ecs::reflect::ReflectResource;
+use bevy::ecs::reflect::{ReflectResource, ReflectComponent};
 use bevy::ecs::component::Component;
 use bevy::ecs::system::{Commands, Local, Resource, Res, ResMut, Query};
 use bevy::ecs::query::With;
@@ -20,7 +20,7 @@ use bevy::text::{Text2dBundle, TextStyle, Text};
 use bevy_common_assets::json::JsonAssetPlugin;
 use bevy_common_assets::toml::TomlAssetPlugin;
 use bevy_pg_calendar::prelude::{Calendar, CalendarNewHourEvent, Cron};
-use serde::{Deserialize, Serialize, Deserializer};
+use serde::{Deserialize, Serialize, Deserializer, Serializer};
 use std::hash::{DefaultHasher, Hash, Hasher};
 use std::fmt;
 
@@ -49,6 +49,7 @@ impl Plugin for PGJobsPlugin {
         .register_type::<JobTasks>()
         .register_type::<JobStatus>()
         .register_type::<JobSchedule>()
+        .register_type::<JobDebug>()
 
         .add_plugins(JsonAssetPlugin::<JobData>::new(&["job.json"]))
         .add_plugins(TomlAssetPlugin::<JobData>::new(&["job.toml"]))
@@ -602,7 +603,8 @@ fn start_job(
 
 
 
-#[derive(Component)]
+#[derive(Component, Reflect)]
+#[reflect(Component)]
 struct JobDebug;
 
 
