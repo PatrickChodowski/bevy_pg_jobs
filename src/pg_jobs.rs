@@ -50,6 +50,7 @@ impl Plugin for PGJobsPlugin {
         .register_type::<JobStatus>()
         .register_type::<JobSchedule>()
         .register_type::<JobDebug>()
+        .register_type::<JobPaused>()
 
         .add_plugins(JsonAssetPlugin::<JobData>::new(&["job.json"]))
         .add_plugins(TomlAssetPlugin::<JobData>::new(&["job.toml"]))
@@ -410,7 +411,8 @@ impl Jobs {
     }
 }
 
-#[derive(Component)]
+#[derive(Component, Reflect)]
+#[reflect(Component)]
 #[component(storage = "SparseSet")]
 pub struct JobPaused;
 
