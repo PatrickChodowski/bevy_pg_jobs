@@ -37,6 +37,7 @@ impl Plugin for TasksPlugin {
         .register_type::<TeleportTask>()
         .register_type::<DecisionTask>()
         .register_type::<LoopTask>()
+        .register_type::<Dispatcher>()
         .configure_sets(Update, (
             TaskSets::Dispatch, 
             TaskSets::Extension, 
@@ -221,6 +222,11 @@ impl JobTasks { pub fn new() -> Self {
         }
     }
 }
+
+#[derive(Component, Reflect)]
+#[reflect(Component)]
+pub struct Dispatcher;
+
 
 #[derive(Default, Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 
