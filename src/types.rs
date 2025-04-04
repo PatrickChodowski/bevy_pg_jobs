@@ -1,10 +1,11 @@
 use bevy::prelude::*;
 use std::any::Any;
 use std::fmt::Debug;
+use std::ops::{Deref, DerefMut};
 use bevy::platform_support::collections::HashMap;
 
 use bevy::reflect::{TypeInfo, TypePath, Typed, DynamicTyped, 
-    ReflectMut, ReflectRef, ReflectOwned, ReflectCloneError, ApplyError};
+    ReflectMut, ReflectRef, ReflectOwned, ReflectCloneError, ApplyError, GetTypeRegistration};
 use std::sync::OnceLock;
 
 pub trait PGTask: Reflect + Any + Send + Sync + Debug {}
@@ -57,6 +58,14 @@ pub struct Job {
 pub struct Jobs {
     data:   Vec<Job>
 }
+
+
+impl GetTypeRegistration for Box<dyn PGTask> {
+    fn get_type_registration() -> bevy::reflect::TypeRegistration {
+        bevy::reflect::TypeRegistration::of::<Box<dyn PGTask>>()
+    }
+}
+
 
 // Really Need to implement Reflect
 impl TypePath for Box<dyn PGTask> {
@@ -144,12 +153,6 @@ impl PartialReflect for Box<dyn PGTask> {
     }
 }
 
-
-
-use std::ops::{Deref, DerefMut};
-
-
-
 impl Reflect for Box<dyn PGTask> {
     fn into_any(self: Box<Self>) -> Box<dyn Any> {
         Box::new((*self).into_any())
@@ -180,45 +183,6 @@ impl Reflect for Box<dyn PGTask> {
     }
 }
 
-
-
-
-
-
-
-
-
-// impl Reflect for Box<dyn PGTask> {
-//     fn into_any(self: Box<Self>) -> Box<dyn Any> {
-//         self
-//     }
-
-//     fn as_any(&self) -> &dyn Any {
-//         self.as_reflect().as_any()
-//     }
-
-//     fn as_any_mut(&mut self) -> &mut dyn Any {
-//         self.as_reflect_mut().as_any_mut()
-//     }
-
-//     fn into_reflect(self: Box<Self>) -> Box<dyn Reflect> {
-//         self
-//     }
-
-//     fn as_reflect(&self) -> &dyn Reflect {
-//         self.as_ref()
-//     }
-
-//     fn as_reflect_mut(&mut self) -> &mut dyn Reflect {
-//         self.as_mut()
-//     }
-
-//     fn set(&mut self, value: Box<dyn Reflect>) -> Result<(), Box<dyn Reflect>> {
-//         if let Ok(task) = value.downcast::<Self>() {
-//             *self = task;
-//             Ok(())
-//         } else {
-//             Err(value)
-//         }
-//     }
-// }
+impl FromReflect for Box<dyn PGTask> {
+    fn from_reflect(_: &(dyn bevy::prelude::PartialReflect + 'static)) -> std::option::Option<Self> { todo!() }
+}
