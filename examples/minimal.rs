@@ -1,6 +1,7 @@
 use bevy::prelude::*;
 use bevy::ecs::reflect::ReflectCommandExt;
 use bevy_pg_jobs::prelude::*;
+use pg_jobs_macros::PGTask;
 use bevy_pg_calendar::prelude::PGCalendarPlugin;
 
 fn main() {
@@ -10,10 +11,10 @@ fn main() {
     .register_type::<Player>()
     .register_type::<CosTam>()
     .add_plugins(PGCalendarPlugin::default())
-    // .add_plugins(PGJobsPlugin{
-    //     active: true,
-    //     debug: false
-    // })
+    .add_plugins(PGJobsPlugin{
+        active: true,
+        debug: false
+    })
     .add_systems(Startup, setup)
     .add_systems(Startup, init)
     .add_systems(Update, update)
@@ -34,26 +35,21 @@ fn setup(){
 
 
 
-#[derive(Component, Reflect, Debug)]
+#[derive(Component, Reflect, Debug, Clone, PGTask)]
 #[reflect(Component)]
 struct ID {
     id: usize
 }
-impl PGTask for ID {}
 
-#[derive(Component, Reflect, Debug)]
+#[derive(Component, Reflect, Debug, Clone, PGTask)]
 #[reflect(Component)]
 struct Player;
 
-impl PGTask for Player {}
-
-
-#[derive(Component, Reflect, Debug, Clone)]
+#[derive(Component, Reflect, Debug, Clone, PGTask)]
 #[reflect(Component)]
 struct CosTam {
     name: String
 }
-impl PGTask for CosTam {}
 
 
 fn init(

@@ -18,7 +18,16 @@ use serde::{Deserialize, Serialize, Deserializer, Serializer};
 use std::hash::{DefaultHasher, Hash, Hasher};
 use std::fmt;
 
-use super::pg_tasks::JobTasks;
+use super::types::{JobTasks, JobData, Jobs, Job, JobID};
+
+#[derive(Debug, Hash, PartialEq, Eq, Clone, SystemSet)]
+pub enum TaskSets {
+    Dispatch,
+    Extension,
+    Simple,
+    Loop,
+    Decision
+}
 
 pub struct PGJobsPlugin {
     pub active: bool,
@@ -45,13 +54,22 @@ impl Plugin for PGJobsPlugin {
         .register_type::<JobSchedule>()
         .register_type::<JobDebug>()
         .register_type::<JobPaused>()
+        .configure_sets(
+            Update, (
+                TaskSets::Dispatch, 
+                TaskSets::Extension, 
+                TaskSets::Simple, 
+                TaskSets::Decision,
+                TaskSets::Loop
+            ).chain()
+        )
 
-        .add_plugins(JsonAssetPlugin::<JobData>::new(&["job.json"]))
-        .add_plugins(TomlAssetPlugin::<JobData>::new(&["job.toml"]))
-        .add_plugins(JsonAssetPlugin::<JobTrigger>::new(&["trigger.json"]))
-        .add_plugins(TomlAssetPlugin::<JobTrigger>::new(&["trigger.toml"]))
-        .add_plugins(JsonAssetPlugin::<JobTriggers>::new(&["triggers.json"]))
-        .add_plugins(TomlAssetPlugin::<JobTriggers>::new(&["triggers.toml"]))
+        // .add_plugins(JsonAssetPlugin::<JobData>::new(&["job.json"]))
+        // .add_plugins(TomlAssetPlugin::<JobData>::new(&["job.toml"]))
+        // .add_plugins(JsonAssetPlugin::<JobTrigger>::new(&["trigger.json"]))
+        // .add_plugins(TomlAssetPlugin::<JobTrigger>::new(&["trigger.toml"]))
+        // .add_plugins(JsonAssetPlugin::<JobTriggers>::new(&["triggers.json"]))
+        // .add_plugins(TomlAssetPlugin::<JobTriggers>::new(&["triggers.toml"]))
 
         .insert_resource(JobSettings::init(self.active, self.debug))
         .insert_resource(JobCatalog::init())
@@ -216,7 +234,7 @@ impl JobCatalog {
         job.set_active();
         jobs.add(job);
         let first_task = jobdata.tasks.get_current();
-        first_task.add_task(commands, &entity);
+        first_task.task.insert_task(commands, &entity);
     }
     pub fn start(&self, commands: &mut Commands, job_id: JobID, jobs: &mut ResMut<Jobs>) -> Entity {
         let jobdata = self.get(job_id);
@@ -299,110 +317,6 @@ impl JobScheduler {
         }
     }
 }
-#[derive(Resource, Reflect, Serialize, Deserialize, Clone)]
-#[reflect(Resource)]
-pub struct Jobs {
-    data:   Vec<Job>
-}
-impl Jobs {
-    fn init() -> Self {
-        Self {data: Vec::new()}
-    }
-    pub fn add(&mut self, job: Job) {
-        self.data.push(job); // This allows for multiple jobs per entity :o
-    }
-
-    pub fn get(&self, entity: &Entity) -> Option<&Job> {
-        for job in self.data.iter(){
-            if entity == &job.entity {
-                return Some(job);
-            }
-        }
-        return None;
-    }
-
-    pub fn get_mut(&mut self, entity: &Entity) -> Option<&mut Job> {
-        for job in self.data.iter_mut(){
-            if entity == &job.entity {
-                return Some(job);
-            }
-        }
-        return None;
-    }
-
-    pub fn fail_task(&mut self, commands: &mut Commands, task_entity: &Entity){
-        if let Some(job) = self.get_mut(&task_entity) {
-            let next_task_type = job.data.tasks.set_task(job.data.fail_task_id);
-            next_task_type.add_task(commands, task_entity);
-        } else {
-            panic!("no entity {:?} in jobs", task_entity);
-        }
-    }
-
-    pub fn next_task(&mut self, commands: &mut Commands, task_entity: &Entity) {
-        if let Some(job) = self.get_mut(&task_entity) {
-            let next_task_type = job.data.tasks.next_task();
-            next_task_type.add_task(commands, task_entity);
-        } else {
-            panic!("no entity {:?} in jobs", task_entity);
-            // info!("no entity {:?} in jobs", task_entity);
-        }
-    }
-    pub fn jump_task(&mut self, commands: &mut Commands, task_entity: &Entity, next_task_id: u32){
-        if let Some(job) = self.get_mut(&task_entity) {
-            let next_task_type = job.data.tasks.set_task(next_task_id);
-            next_task_type.add_task(commands, task_entity);
-        } else {
-            panic!("no entity {:?} in jobs", task_entity);
-        }
-    }
-    pub fn index(&self, entity: &Entity) -> Option<usize> {
-        return self.data.iter().position(|x| &x.entity == entity);
-    }
-    fn clean_task(&mut self, commands: &mut Commands, entity: &Entity){
-        if let Some(job) = self.get(&entity){
-            let task = job.data.tasks.get_current();
-            task.remove(commands, entity);
-        }
-    }
-    pub fn upsert(&mut self, commands: &mut Commands, entity: &Entity, job: Job) {
-        if let Some(index) = self.index(entity){
-            self.clean_task(commands, entity);
-            self.data[index] = job;
-        } else {
-            self.data.push(job);
-        }
-    }
-    pub fn remove(&mut self, commands: &mut Commands, job_id: JobID, entity: &Entity) {
-        self.clean_task(commands, entity);
-        self.data.retain(|x| !(&x.entity == entity && x.data.id == job_id))
-    }
-    pub fn remove_all(&mut self, entity: &Entity) {
-        self.data.retain(|x| &x.entity != entity)
-    }
-    pub fn remove_all_clean(&mut self, commands: &mut Commands, entity: &Entity) {
-        self.clean_task(commands, entity);
-        self.data.retain(|x| &x.entity != entity)
-    }
-    pub fn clear(&mut self) {
-        self.data.clear();
-    }
-    pub fn get_data(&self) -> &Vec<Job> {
-        &self.data
-    }
-    pub fn pause(&mut self, commands: &mut Commands, entity: &Entity) {
-        if let Some(job) = self.get_mut(entity){
-            job.status = JobStatus::Paused;
-            commands.entity(*entity).insert(JobPaused);
-        }
-    }
-    pub fn unpause(&mut self, commands: &mut Commands, entity: &Entity) {
-        if let Some(job) = self.get_mut(entity){
-            job.status = JobStatus::Active;
-            commands.entity(*entity).remove::<JobPaused>();
-        }
-    }
-}
 
 #[derive(Component, Reflect)]
 #[reflect(Component)]
@@ -410,7 +324,7 @@ impl Jobs {
 pub struct JobPaused;
 
 
-#[derive(PartialEq, Copy, Clone, Serialize, Deserialize, Debug, Reflect)]
+#[derive(PartialEq, Copy, Clone, Debug, Reflect)]
 pub enum JobStatus {
     ToDo,
     Active,
@@ -419,83 +333,17 @@ pub enum JobStatus {
     Inactive
 }
 
-#[derive(Serialize, Deserialize, Asset, TypePath, Clone, Debug)]
+#[derive(Asset, TypePath, Clone, Debug)]
 pub struct JobTriggers {
     pub data: Vec<JobTrigger>
 }
 
-#[derive(Serialize, Deserialize, Asset, TypePath, Clone, Debug)]
+#[derive(Asset, TypePath, Clone, Debug)]
 pub struct JobTrigger {
     pub trigger_id:    u32,
     pub job_id:        JobID,
     pub schedule:      JobSchedule,
     pub active:        bool
-}
-
-#[derive(Serialize, Deserialize, Asset, Clone, Debug, Reflect)]
-pub struct JobData {
-    pub id:            JobID,
-    pub label:         String,
-    pub fail_task_id:  u32,               // ID of task to perform if task failed
-    pub tasks:         JobTasks, 
-}
-impl JobData {
-    pub fn assign(&self, commands: &mut Commands, entity: Entity, jobs: &mut ResMut<Jobs>) {
-        jobs.remove_all_clean(commands, &entity);
-        let mut job = Job::new(entity, self.clone());
-        job.set_active();
-        jobs.add(job);
-        let first_task = self.tasks.get_current();
-        first_task.add_task(commands, &entity);
-    }
-
-
-    pub fn start(&self, commands: &mut Commands, jobs: &mut ResMut<Jobs>) -> Entity{ 
-        let first_task = self.tasks.get_current();
-        let job_entity = first_task.spawn_with_task(commands);
-        let mut job = Job::new(job_entity, self.clone());
-        job.set_active();
-        jobs.add(job);
-        return job_entity;
-    }
-}
-
-#[derive(Clone, Debug, Reflect, Serialize, Deserialize)]
-pub struct Job {
-    pub entity:        Entity,           
-    loopk:             u32,              // Used for loops to count iterations
-    status:            JobStatus,
-    #[serde(serialize_with = "serialize_job_data")]
-    pub data:          JobData,          // List of tasks to be performed by entity
-}
-
-impl Job {
-    pub fn new(entity: Entity, data: JobData) -> Self {
-        Job {
-            entity,
-            data,
-            loopk: 0,
-            status: JobStatus::ToDo
-        }
-    }
-    pub fn loop_reset(&mut self){
-        self.loopk = 0;
-    }
-    pub fn loop_incr(&mut self){
-        self.loopk += 1;
-    }
-    pub fn loopk(&self) -> u32 {
-        self.loopk
-    }
-    pub fn get_status(&mut self) -> JobStatus {
-        self.status
-    }
-    pub fn set_active(&mut self){
-        self.status = JobStatus::Active;
-    }
-    pub fn set_done(&mut self){
-        self.status = JobStatus::Done;
-    }
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Reflect)]
@@ -602,57 +450,24 @@ fn start_job(
 #[reflect(Component)]
 struct JobDebug;
 
+// #[derive(Serialize)]
+// struct SerializeJobData {
+//     id:           String,
+//     label:        String,
+//     fail_task_id: u32,
+//     tasks:        JobTasks
+// }
 
-#[derive(Serialize, Asset, Clone, Copy, Debug, PartialEq, Eq, Reflect)]
-pub struct JobID(pub u32);
+// fn serialize_job_data<S>(jd: &JobData, serializer: S) -> Result<S::Ok, S::Error>
+// where
+//     S: Serializer
+// {
+//     let sjd = SerializeJobData {
+//         id: jd.label.clone(),
+//         label: jd.label.clone(),
+//         fail_task_id: jd.fail_task_id,
+//         tasks: jd.tasks.clone()
+//     };
 
-impl fmt::Display for JobID {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "JobID: {}", self.0)
-    }
-}
-
-impl JobID {
-    pub fn from_str(job_string: &str) -> Self {
-        let mut s = DefaultHasher::new();
-        job_string.hash(&mut s);
-        let hashed_id = JobID(s.finish() as u32);
-        return hashed_id;
-    }
-}
-
-impl<'de> Deserialize<'de> for JobID {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        let string_job_id: String = Deserialize::deserialize(deserializer)?;
-        let mut s = DefaultHasher::new();
-        string_job_id.hash(&mut s);
-        let hashed_id = JobID(s.finish() as u32);
-        info!("Job String: {} Hashed ID: {}", string_job_id, hashed_id);
-        return Ok(hashed_id);
-    }
-}
-
-#[derive(Serialize)]
-struct SerializeJobData {
-    id:           String,
-    label:        String,
-    fail_task_id: u32,
-    tasks:        JobTasks
-}
-
-fn serialize_job_data<S>(jd: &JobData, serializer: S) -> Result<S::Ok, S::Error>
-where
-    S: Serializer
-{
-    let sjd = SerializeJobData {
-        id: jd.label.clone(),
-        label: jd.label.clone(),
-        fail_task_id: jd.fail_task_id,
-        tasks: jd.tasks.clone()
-    };
-
-    sjd.serialize(serializer)
-}
+//     sjd.serialize(serializer)
+// }

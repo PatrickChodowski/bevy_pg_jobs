@@ -37,3 +37,5 @@ chrono = {version = "0.4.40", default-features = false, features = ["serde"]}
 bevy_pg_calendar = {git = "https://www.github.com/PatrickChodowski/bevy_pg_calendar", rev="e695b537a5991aaddb720da3bbeeb92ca8d82d1b"}
 rand = "0.9.0"
 bevy_common_assets = {version = "0.13.0-rc.1", default-features = false, features = ["json", "toml"]}
+pg_jobs_macros = {path="./pg_jobs_macros"}
+dyn-clone = "1.0.19"
