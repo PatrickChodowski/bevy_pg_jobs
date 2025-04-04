@@ -140,10 +140,12 @@ pub fn wait_task_time(
 }
 
 
-pub fn wait_idle_calendar(mut commands:     Commands,
-                          mut jobs:         ResMut<Jobs>,
-                          calendar:         Res<Calendar>,
-                          mut idle_cars:    Query<(Entity, &mut WaitTask)>){
+pub fn wait_idle_calendar(
+    mut commands:     Commands,
+    mut jobs:         ResMut<Jobs>,
+    calendar:         Res<Calendar>,
+    mut idle_cars:    Query<(Entity, &mut WaitTask)>
+){
 
     for (task_entity, mut wait_task) in idle_cars.iter_mut(){
         match &mut wait_task.schedule {
@@ -170,10 +172,12 @@ pub fn wait_idle_calendar(mut commands:     Commands,
 
 }
 
-pub fn move_task(mut commands:   Commands,
-             mut jobs:       ResMut<Jobs>,
-             time:           Res<Time>,
-             mut tasks:      Query<(Entity, &mut Transform, &mut MoveTask)>,){
+pub fn move_task(
+    mut commands:   Commands,
+    mut jobs:       ResMut<Jobs>,
+    time:           Res<Time>,
+    mut tasks:      Query<(Entity, &mut Transform, &mut MoveTask)>,
+){
 
     let speed = 200.0;
     for (task_entity, mut transform, move_task) in tasks.iter_mut(){
@@ -193,9 +197,11 @@ pub fn move_task(mut commands:   Commands,
 
 }
 
-pub fn rotate_task(mut commands:   Commands,
-               mut jobs:       ResMut<Jobs>,
-               mut tasks:      Query<(Entity, &mut Transform, &RotateTask)>,){
+pub fn rotate_task(
+    mut commands:   Commands,
+    mut jobs:       ResMut<Jobs>,
+    mut tasks:      Query<(Entity, &mut Transform, &RotateTask)>,
+){
 
     let ang_speed = 0.05;
     for (task_entity, mut transform, rotate_task) in tasks.iter_mut(){

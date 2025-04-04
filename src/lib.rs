@@ -3,10 +3,15 @@ use bevy::prelude::*;
 mod pg_jobs;
 mod pg_tasks;
 mod tasks;
+mod types;
 mod utils;
 
-pub use pg_tasks::TasksPlugin;
-pub use pg_jobs::{PGJobsPlugin, Jobs, JobSettings, JobScheduler, StopJobEvent, StartJobEvent};  
+
+
+
+pub use pg_tasks::{TasksPlugin, JobTasks};
+pub use pg_jobs::{PGJobsPlugin, Jobs, JobSettings, JobScheduler, 
+    StopJobEvent, StartJobEvent, JobData};  
 
 pub struct AIPlugin;
 

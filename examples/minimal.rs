@@ -14,10 +14,51 @@ fn main() {
         active: true,
         debug: false
     })
+    .add_systems(Startup, setup)
     .add_systems(Startup, init)
     .add_systems(Update, update)
     .run();
 }
+
+
+
+// Task
+
+
+
+
+
+
+
+fn setup(
+
+){
+
+
+
+    // let td = TaskData {
+    //     id: 0,
+    //     next: None,
+    //     task: 
+    // };
+
+    // let jt = JobTasks {
+    //     data: 
+
+    // };
+
+
+
+    // let jd = JobData {
+
+    // };
+    
+
+
+}
+
+
+
 
 #[derive(Component, Reflect, Debug)]
 #[reflect(Component)]
@@ -44,6 +85,7 @@ fn init(
     let b = CosTam{name: "dupa".to_string().clone()};
     v.push(Box::new(b.as_reflect()));
     let entity_id = commands.spawn_empty().id();
+
     for partial_comp in v.iter(){
         let reflected = partial_comp.reflect_clone().ok().unwrap().into_partial_reflect();
         commands.entity(entity_id).insert_reflect(reflected);
