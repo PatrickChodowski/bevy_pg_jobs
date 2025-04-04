@@ -1,22 +1,16 @@
+use bevy::prelude::*;
 use bevy::app::{App, Plugin, PreUpdate, Update, Startup};
-use bevy::asset::{Asset, AssetServer, Assets, LoadedFolder, RecursiveDependencyLoadState, Handle};
-use bevy::ecs::schedule::common_conditions::{on_event, resource_changed, resource_exists};
-use bevy::ecs::schedule::{IntoSystemConfigs, Condition};
+use bevy::asset::{Asset, AssetServer, Assets, LoadedFolder, Handle};
+use bevy::ecs::schedule::common_conditions::{on_event, resource_exists};
+use bevy::ecs::schedule::{IntoScheduleConfigs, Condition};
 use bevy::ecs::entity::Entity;
 use bevy::ecs::event::{Event, EventReader};
 use bevy::ecs::reflect::{ReflectResource, ReflectComponent};
 use bevy::ecs::component::Component;
-use bevy::ecs::system::{Commands, Local, Resource, Res, ResMut, Query};
+use bevy::ecs::system::{Commands, Local, Res, ResMut, Query};
+use bevy::ecs::resource::Resource;
 use bevy::ecs::query::With;
-use bevy::sprite::Anchor;
-use bevy::transform::components::Transform;
-use bevy::hierarchy::DespawnRecursiveExt;
-use bevy::utils::default;
-use bevy::hierarchy::{BuildChildren, Parent};
-use bevy::log::info;
 use bevy::reflect::{TypePath, Reflect};
-use bevy::color::Color;
-use bevy::text::{Text2dBundle, TextStyle, Text};
 use bevy_common_assets::json::JsonAssetPlugin;
 use bevy_common_assets::toml::TomlAssetPlugin;
 use bevy_pg_calendar::prelude::{Calendar, CalendarNewHourEvent, Cron};
@@ -69,16 +63,15 @@ impl Plugin for PGJobsPlugin {
 
         .add_systems(Startup,   init)
         .add_systems(Update,    track.run_if(resource_exists::<LoadedJobDataHandles>
-                                     .and_then(resource_exists::<LoadedJobTriggerHandles>)))
+                                     .and(resource_exists::<LoadedJobTriggerHandles>)))
 
-        .add_systems(PreUpdate, (trigger_jobs_calendar.run_if(on_event::<CalendarNewHourEvent>()), 
+        .add_systems(PreUpdate, (trigger_jobs_calendar.run_if(on_event::<CalendarNewHourEvent>), 
                                  trigger_jobs_time)
                                 .chain()
                                 .run_if(if_jobs_active))
 
-        .add_systems(Update,    debug_jobs.run_if(if_jobs_debug.and_then(resource_changed::<Jobs>)))
-        .add_systems(PreUpdate, (stop_job.run_if(on_event::<StopJobEvent>()), 
-                                 start_job.run_if(on_event::<StartJobEvent>())).chain())
+        .add_systems(PreUpdate, (stop_job.run_if(on_event::<StopJobEvent>), 
+                                 start_job.run_if(on_event::<StartJobEvent>)).chain())
         ;
     }
 }
@@ -143,15 +136,15 @@ fn track(
 
     if !job_ready.data_ready {
         if let Some(scenes_load_state) = ass.get_recursive_dependency_load_state(&loaded_jobdata.0) {
-            if scenes_load_state == RecursiveDependencyLoadState::Loaded {
+            if scenes_load_state.is_loaded(){
                 job_ready.data_ready = true;
             }
         }
     }
     if !job_ready.triggers_ready {
         if let Some(scenes_load_state) = ass.get_recursive_dependency_load_state(&loaded_jobtrigger.0) {
-            if scenes_load_state == RecursiveDependencyLoadState::Loaded {
-                job_ready.triggers_ready = true;
+            if scenes_load_state.is_loaded(){
+                job_ready.data_ready = true;
             }
         }
     }
@@ -575,15 +568,15 @@ fn stop_job(
     mut commands:       Commands,
     mut jobs:           ResMut<Jobs>,
     mut stop_job:       EventReader<StopJobEvent>,
-    jobdebugs:          Query<(Entity, &Parent), With<JobDebug>>
+    jobdebugs:          Query<(Entity, &ChildOf), With<JobDebug>>
 ){
     for ev in stop_job.read(){
         info!(" [JOBS] Removing all jobs for entity: {:?}", ev.entity);
         jobs.remove_all_clean(&mut commands, &ev.entity);
 
         for (text_entity, task_entity) in jobdebugs.iter(){
-            if **task_entity == ev.entity {
-                commands.entity(text_entity).despawn_recursive();
+            if task_entity.parent == ev.entity {
+                commands.entity(text_entity).despawn();
                 break;
             }
         }
@@ -608,61 +601,6 @@ fn start_job(
 #[derive(Component, Reflect)]
 #[reflect(Component)]
 struct JobDebug;
-
-
-
-// Displays each entity current task and its parameters
-fn debug_jobs(
-    mut commands:     Commands, 
-    ass:              Res<AssetServer>,
-    jobs:             Res<Jobs>, 
-    job_settings:     Res<JobSettings>,
-    mut jobdebugs:    Query<(Entity, &Parent, &mut Text), With<JobDebug>>
-){
-    
-    let font = ass.load("fonts/FiraMono-Medium.ttf");
-    let text_style = TextStyle {
-        font: font.clone(),
-        font_size: 40.0,
-        color: Color::BLACK,
-    };
-
-    if job_settings.get_debug(){
-
-        for job in jobs.data.iter(){
-
-            let current_task = job.data.tasks.get_current();
-            let mut needs_label: bool = true;
-    
-            for(_text_entity, text_parent, mut text) in jobdebugs.iter_mut(){
-    
-                if **text_parent != job.entity {
-                    continue; 
-                }
-                needs_label = false;
-                text.sections[0].value = current_task.display();
-            } 
-    
-            if needs_label {
-                let debug_text = commands.spawn((
-                    Text2dBundle {
-                        text: Text::from_section(current_task.display(), text_style.clone()),
-                        text_anchor: Anchor::TopCenter,
-                        transform: Transform::from_xyz(0.0, 70.0, 10.0),
-                        ..default()
-                    },
-                    JobDebug,
-                )).id();
-            
-                commands.entity(job.entity).add_child(debug_text);
-            }
-        }
-    } else {
-        for(text_entity, _text_parent, _text) in jobdebugs.iter(){
-            commands.entity(text_entity).despawn();
-        }
-    }
-}
 
 
 #[derive(Serialize, Asset, Clone, Copy, Debug, PartialEq, Eq, Reflect)]

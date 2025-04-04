@@ -1,6 +1,6 @@
 // Bevy dependencies
 use bevy::prelude::*;
-use bevy::utils::HashMap;
+use bevy::platform_support::collections::HashMap;
 use serde::{Deserialize, Serialize, Deserializer, de::Error, de::Unexpected};
 
 
@@ -47,7 +47,7 @@ impl Plugin for TasksPlugin {
         ).chain())
         .add_systems(Update, ((spawn_group_task, spawn_task).chain(), 
                               wait_task_time, 
-                              wait_idle_calendar.run_if(on_event::<CalendarNewHourEvent>()),
+                              wait_idle_calendar.run_if(on_event::<CalendarNewHourEvent>),
                               move_task,
                               rotate_task,
                               teleport_task,
@@ -174,7 +174,7 @@ pub struct JobTasks {
 
 impl JobTasks { pub fn new() -> Self {
         JobTasks{
-            data:                   HashMap::new(),
+            data:                   HashMap::default(),
             current_task_id:        0,
         }
     }

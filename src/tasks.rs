@@ -1,5 +1,4 @@
 use bevy::prelude::*;
-use bevy::sprite::MaterialMesh2dBundle;
 use crate::utils::{get_direction, get_distance_manhattan, get_random_range_u32, move_x, move_y};
 use serde::{Deserialize, Serialize};
 use crate::pg_jobs::{Jobs, JobSchedule, JobCatalog, JobID};
@@ -105,13 +104,11 @@ pub fn spawn_task(
 
     for (task_entity, spawn_task) in tasks.iter(){
 
-        commands.entity(task_entity).insert(
-            MaterialMesh2dBundle {
-                mesh: meshes.add(Rectangle::from_size(Vec2 { x: 100.0, y: 100.0 })).into(),
-                transform: Transform::from_translation(spawn_task.loc),
-                material: materials.add(spawn_task.color),
-                ..default()}
-        );
+        commands.entity(task_entity).insert((
+            Mesh2d(meshes.add(Rectangle::from_size(Vec2 { x: 100.0, y: 100.0 })).into()),
+            Transform::from_translation(spawn_task.loc),
+            MeshMaterial2d(materials.add(spawn_task.color))
+        ));
 
         commands.entity(task_entity).remove::<SpawnTask>();
         jobs.next_task(&mut commands, &task_entity);
@@ -119,17 +116,19 @@ pub fn spawn_task(
 }
 
 
-pub fn wait_task_time(mut commands:   Commands,
-                  mut jobs:       ResMut<Jobs>,
-                  time:           Res<Time>,
-                  mut tasks:      Query<(Entity, &mut WaitTask)>,){
+pub fn wait_task_time(
+    mut commands:   Commands,
+    mut jobs:       ResMut<Jobs>,
+    time:           Res<Time>,
+    mut tasks:      Query<(Entity, &mut WaitTask)>,
+){
 
     for (task_entity, mut wait_task) in tasks.iter_mut(){
 
         match &mut wait_task.schedule {
             JobSchedule::RealDelay(delay) => {
                 if *delay > 0.0 {
-                    *delay -= time.delta_seconds();
+                    *delay -= time.delta_secs();
                 } else {
                     commands.entity(task_entity).remove::<WaitTask>();
                     jobs.next_task(&mut commands, &task_entity);
@@ -181,7 +180,7 @@ pub fn move_task(mut commands:   Commands,
 
         let angle: f32 = get_direction(&transform.translation.xy(), &move_task.target.xy());
         let dist: f32 = get_distance_manhattan(&transform.translation.xy(), &move_task.target.xy());
-        let local_speed = speed*time.delta_seconds();
+        let local_speed = speed*time.delta_secs();
         if local_speed > dist {
             commands.entity(task_entity).remove::<MoveTask>();
             jobs.next_task(&mut commands, &task_entity);
@@ -292,7 +291,7 @@ pub fn despawn_task(
     tasks:          Query<Entity, With<DespawnTask>>){
 
     for task_entity in tasks.iter(){
-        commands.entity(task_entity).despawn_recursive();
+        commands.entity(task_entity).despawn();
         jobs.remove_all(&task_entity);
     }
 

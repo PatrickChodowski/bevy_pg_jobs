@@ -4,8 +4,8 @@ use bevy::math::Vec2;
 use rand::Rng;
 
 pub fn get_random_range_u32(min: u32, max: u32) -> u32 {
-    let mut rng = rand::thread_rng();
-    let rand: u32 = rng.gen_range(min..=max);
+    let mut rng = rand::rng();
+    let rand: u32 = rng.random_range(min..=max);
     return rand;
 }
 
