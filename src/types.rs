@@ -97,7 +97,7 @@ impl JobTasks {
 
     fn last_index(&self) -> u32 {
         let Some(max_key) = self.data.keys().max() else {return 0};
-        return *max_key;
+        return *max_key+1;
     }
 
     pub fn add_task(&mut self, task: Task) {
