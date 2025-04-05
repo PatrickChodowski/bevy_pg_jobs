@@ -18,6 +18,10 @@ use serde::{Deserialize, Serialize, Deserializer, Serializer};
 use std::hash::{DefaultHasher, Hash, Hasher};
 use std::fmt;
 
+use crate::common::{
+    DespawnTask, DespawnWithDelay, LoopTask, HideTask, ShowTask, TeleportTask, WaitTask, RandomWaitTask
+};
+
 use super::types::{JobTasks, JobData, Jobs, Job, JobID};
 
 #[derive(Debug, Hash, PartialEq, Eq, Clone, SystemSet)]
@@ -54,6 +58,16 @@ impl Plugin for PGJobsPlugin {
         .register_type::<JobSchedule>()
         .register_type::<JobDebug>()
         .register_type::<JobPaused>()
+
+        .register_type::<DespawnTask>()
+        .register_type::<DespawnWithDelay>()
+        .register_type::<HideTask>()
+        .register_type::<ShowTask>()
+        .register_type::<RandomWaitTask>()
+        .register_type::<WaitTask>()
+        .register_type::<LoopTask>()
+        .register_type::<TeleportTask>()
+
         .configure_sets(
             Update, (
                 TaskSets::Dispatch, 
