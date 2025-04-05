@@ -21,16 +21,12 @@ fn main() {
     .run();
 }
 
-fn setup(){
-
-    let t = Task{
-        id: 0, next: None, task: Box::new(Player)
-    };
-
-    let t1 = Task{
-        id: 1, next: None, task: Box::new(ID{id: 0})
-    };
-
+fn setup(
+    mut jobs: ResMut<Jobs>
+){
+    let mut tasks = JobTasks::new();
+    tasks.first(Box::new(Player), None);
+    tasks.next(Box::new(ID{id: 0}), None);
 }
 
 
