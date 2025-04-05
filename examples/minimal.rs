@@ -3,6 +3,7 @@ use bevy::ecs::reflect::ReflectCommandExt;
 use bevy_pg_jobs::prelude::*;
 use pg_jobs_macros::PGTask;
 use bevy_pg_calendar::prelude::PGCalendarPlugin;
+use serde::{Serialize, Deserialize};
 
 fn main() {
     App::new()
@@ -31,17 +32,17 @@ fn setup(
 
 
 
-#[derive(Component, Reflect, Debug, Clone, PGTask)]
+#[derive(Component, Reflect, Debug, Clone, Serialize, Deserialize, PGTask)]
 #[reflect(Component)]
 struct ID {
     id: usize
 }
 
-#[derive(Component, Reflect, Debug, Clone, PGTask)]
+#[derive(Component, Reflect, Debug, Clone, Serialize, Deserialize, PGTask)]
 #[reflect(Component)]
 struct Player;
 
-#[derive(Component, Reflect, Debug, Clone, PGTask)]
+#[derive(Component, Reflect, Debug, Clone, Serialize, Deserialize, PGTask)]
 #[reflect(Component)]
 struct CosTam {
     name: String

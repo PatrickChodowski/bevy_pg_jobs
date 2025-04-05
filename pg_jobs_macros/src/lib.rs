@@ -10,6 +10,7 @@ pub fn derive_pg_task(input: TokenStream) -> TokenStream {
     let name = &input.ident;
 
     let expanded = quote! {
+        #[typetag::serde]
         impl PGTask for #name {
 
             fn insert_task(&self, commands: &mut Commands, entity: &Entity) {

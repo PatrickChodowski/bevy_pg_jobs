@@ -1,8 +1,8 @@
 // Collection of very common task implementations
 use bevy::prelude::*;
-use bevy::reflect::{OpaqueInfo, Typed};
 use bevy_pg_calendar::prelude::Calendar;
 use rand::Rng;
+use serde::{Serialize, Deserialize};
 
 use crate::jobs::JobSchedule;
 use crate::types::Jobs;
@@ -10,41 +10,41 @@ use crate::prelude::PGTask;
 use pg_jobs_macros::PGTask;
 
 
-#[derive(Component, Clone, Copy, Debug, Reflect, PGTask)]
+#[derive(Component, Clone, Copy, Debug, Reflect, Serialize, Deserialize, PGTask)]
 #[component(storage = "SparseSet")]
 #[reflect(Component)]
 pub struct DespawnTask;
 
-#[derive(Component, Clone, Debug, Reflect, PGTask)]
+#[derive(Component, Clone, Debug, Reflect, Serialize, Deserialize, PGTask)]
 #[component(storage = "SparseSet")]
 #[reflect(Component)]
 pub struct DespawnWithDelay{
-    pub timer: Timer
+    // pub timer: Timer
 }
-impl DespawnWithDelay {
-    pub fn new(delay: f32) -> Self {
-        Self {timer: Timer::from_seconds(delay, TimerMode::Once)}
-    }
-}
+// impl DespawnWithDelay {
+//     pub fn new(delay: f32) -> Self {
+//         Self {timer: Timer::from_seconds(delay, TimerMode::Once)}
+//     }
+// }
 
-#[derive(Component, Clone, Copy, Debug, Reflect, PGTask)]
+#[derive(Component, Clone, Copy, Debug, Reflect, Serialize, Deserialize, PGTask)]
 #[component(storage = "SparseSet")]
 #[reflect(Component)]
 pub struct HideTask;
 
-#[derive(Component, Clone, Copy, Debug, Reflect, PGTask)]
+#[derive(Component, Clone, Copy, Debug, Reflect, Serialize, Deserialize, PGTask)]
 #[component(storage = "SparseSet")]
 #[reflect(Component)]
 pub struct ShowTask;
 
-#[derive(Component, Clone, Debug, Reflect, PGTask)]
+#[derive(Component, Clone, Debug, Reflect, Serialize, Deserialize, PGTask)]
 #[component(storage = "SparseSet")]
 #[reflect(Component)]
 pub struct WaitTask {
     pub schedule: JobSchedule
 }
 
-#[derive(Component, Clone, Copy, Debug, Reflect, PGTask)]
+#[derive(Component, Clone, Copy, Debug, Reflect, Serialize, Deserialize, PGTask)]
 #[component(storage = "SparseSet")]
 #[reflect(Component)]
 pub struct RandomWaitTask{
@@ -57,14 +57,14 @@ impl RandomWaitTask {
     }
 }
 
-#[derive(Component, Clone, Copy, Debug, Reflect, PGTask)]
+#[derive(Component, Clone, Copy, Debug, Reflect, Serialize, Deserialize, PGTask)]
 #[component(storage = "SparseSet")]
 #[reflect(Component)]
 pub struct TeleportTask {
     pub loc: Vec3
 }
 
-#[derive(Component, Clone, Copy, Debug, Reflect, PGTask)]
+#[derive(Component, Clone, Copy, Debug, Reflect, Serialize, Deserialize, PGTask)]
 #[component(storage = "SparseSet")]
 #[reflect(Component)]
 pub struct LoopTask {
@@ -77,20 +77,20 @@ impl Default for LoopTask {
     }
 }
 
-pub fn despawn_with_delay_task(
-    mut commands:       Commands,
-    mut jobs:           ResMut<Jobs>,
-    time:               Res<Time>,
-    mut tasks:          Query<(Entity, &mut DespawnWithDelay)>
-){
-    for (entity, mut dwd) in tasks.iter_mut(){
-        dwd.timer.tick(time.delta());
-        if dwd.timer.finished(){
-            commands.entity(entity).despawn();
-            jobs.remove_all(&entity);
-        }
-    }
-}
+// pub fn despawn_with_delay_task(
+//     mut commands:       Commands,
+//     mut jobs:           ResMut<Jobs>,
+//     time:               Res<Time>,
+//     mut tasks:          Query<(Entity, &mut DespawnWithDelay)>
+// ){
+//     for (entity, mut dwd) in tasks.iter_mut(){
+//         dwd.timer.tick(time.delta());
+//         if dwd.timer.finished(){
+//             commands.entity(entity).despawn();
+//             jobs.remove_all(&entity);
+//         }
+//     }
+// }
 
 pub fn despawn_task(
     mut commands:       Commands,

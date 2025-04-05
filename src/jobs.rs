@@ -21,6 +21,7 @@ use std::fmt;
 use crate::common::{
     DespawnTask, DespawnWithDelay, LoopTask, HideTask, ShowTask, TeleportTask, WaitTask, RandomWaitTask
 };
+use crate::types::PGTask;
 
 use super::types::{JobTasks, JobData, Jobs, Job, JobID};
 
@@ -59,6 +60,8 @@ impl Plugin for PGJobsPlugin {
         .register_type::<JobDebug>()
         .register_type::<JobPaused>()
 
+        .register_type_data::<Box<dyn PGTask>, ReflectSerialize>()
+        .register_type_data::<Box<dyn PGTask>, ReflectDeserialize>()
         .register_type::<DespawnTask>()
         .register_type::<DespawnWithDelay>()
         .register_type::<HideTask>()

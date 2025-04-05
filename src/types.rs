@@ -5,15 +5,16 @@ use std::any::Any;
 use std::fmt::Debug;
 use std::ops::{Deref, DerefMut};
 use bevy::platform_support::collections::HashMap;
-use serde::{Deserialize, Serialize, Deserializer, Serializer};
 use bevy::reflect::utility::GenericTypeInfoCell;
 use std::hash::{DefaultHasher, Hash, Hasher};
 use std::fmt;
+use serde::{Deserialize, Serialize, Deserializer, Serializer};
 
 use bevy::reflect::{ApplyError, GetTypeRegistration, ReflectMut, ReflectOwned, ReflectRef, OpaqueInfo, TypeInfo, TypePath, Typed};
 
 use crate::jobs::JobPaused;
 
+#[typetag::serde(tag = "type")]
 pub trait PGTask: Reflect + Any + Send + Sync + DynClone + Debug {
     fn insert_task(&self, commands: &mut Commands, entity: &Entity);
     fn remove(&self, commands: &mut Commands, entity: &Entity);
@@ -22,7 +23,7 @@ pub trait PGTask: Reflect + Any + Send + Sync + DynClone + Debug {
 
 dyn_clone::clone_trait_object!(PGTask);
 
-#[derive(Debug, Reflect, Resource, Clone, Component)]
+#[derive(Debug, Reflect, Resource, Clone, Component, Serialize, Deserialize)]
 pub struct Task {
     pub id:     u32,
     pub next:   Option<u32>,
@@ -485,32 +486,12 @@ impl TypePath for Box<dyn PGTask> {
     }
 }
 
-// impl Typed for Box<dyn PGTask> {
-//     fn type_info() -> &'static TypeInfo {
-//         static CELL: NonGenericTypeInfoCell = NonGenericTypeInfoCell::new();
-//         CELL.get_or_set(|| {
-//           let fields = [
-//             // NamedField::new::<usize >("foo"),
-//             // NamedField::new::<(f32, f32) >("bar"),
-//           ];
-//           let info = StructInfo::new::<Self>(&fields);
-//           TypeInfo::Struct(info)
-//         })
-//     }
-// }
-
-
 impl Typed for Box<dyn PGTask> {
     fn type_info() -> &'static TypeInfo {
         static CELL: GenericTypeInfoCell = GenericTypeInfoCell::new();
         CELL.get_or_insert::<Self, _>(|| TypeInfo::Opaque(OpaqueInfo::new::<Self>()))
     }
 }
-
-
-
-
-
 
 impl PartialReflect for Box<dyn PGTask> {
     fn get_represented_type_info(&self) -> Option<&'static TypeInfo> {
