@@ -21,6 +21,7 @@ pub fn derive_pg_task(input: TokenStream) -> TokenStream {
             }
 
             fn spawn_with_task(&self, commands: &mut Commands) -> Entity {
+                info!("Spawning entity hopefully");
                 commands.spawn(self.clone()).id()
             }
         }
