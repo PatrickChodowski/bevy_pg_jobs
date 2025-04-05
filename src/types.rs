@@ -6,11 +6,11 @@ use std::fmt::Debug;
 use std::ops::{Deref, DerefMut};
 use bevy::platform_support::collections::HashMap;
 use serde::{Deserialize, Serialize, Deserializer, Serializer};
+use bevy::reflect::utility::NonGenericTypeInfoCell;
 use std::hash::{DefaultHasher, Hash, Hasher};
 use std::fmt;
 
-use bevy::reflect::{TypeInfo, TypePath, Typed, 
-    ReflectMut, ReflectRef, ReflectOwned, ApplyError, GetTypeRegistration};
+use bevy::reflect::{ApplyError, GetTypeRegistration, NamedField, ReflectMut, ReflectOwned, ReflectRef, StructInfo, TypeInfo, TypePath, Typed};
 
 use crate::jobs::JobPaused;
 
@@ -387,11 +387,19 @@ impl TypePath for Box<dyn PGTask> {
     }
 }
 
-
 impl Typed for Box<dyn PGTask> {
-    fn type_info() -> &'static TypeInfo { todo!() }
+    fn type_info() -> &'static TypeInfo {
+        static CELL: NonGenericTypeInfoCell = NonGenericTypeInfoCell::new();
+        CELL.get_or_set(|| {
+          let fields = [
+            NamedField::new::<usize >("foo"),
+            NamedField::new::<(f32, f32) >("bar"),
+          ];
+          let info = StructInfo::new::<Self>(&fields);
+          TypeInfo::Struct(info)
+        })
+    }
 }
-
 
 impl PartialReflect for Box<dyn PGTask> {
     fn get_represented_type_info(&self) -> Option<&'static TypeInfo> {

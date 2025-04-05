@@ -80,8 +80,8 @@ impl Plugin for PGJobsPlugin {
         .add_event::<StartJobEvent>()
 
         .add_systems(Startup,   init)
-        .add_systems(Update,    track.run_if(resource_exists::<LoadedJobDataHandles>
-                                     .and(resource_exists::<LoadedJobTriggerHandles>)))
+        // .add_systems(Update,    track.run_if(resource_exists::<LoadedJobDataHandles>
+        //                              .and(resource_exists::<LoadedJobTriggerHandles>)))
 
         .add_systems(PreUpdate, (trigger_jobs_calendar.run_if(on_event::<CalendarNewHourEvent>), 
                                  trigger_jobs_time)
