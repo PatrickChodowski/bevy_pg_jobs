@@ -9,4 +9,9 @@ pub mod prelude {
         StopJobEvent, StartJobEvent, JobCatalog, JobPaused, TaskSets}; 
 
     pub use crate::common::*;
+
+}
+
+pub mod macros {
+    pub use pg_jobs_macros::PGTask;
 }
