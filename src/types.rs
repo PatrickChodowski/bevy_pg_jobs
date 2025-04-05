@@ -587,5 +587,9 @@ impl Reflect for Box<dyn PGTask> {
 }
 
 impl FromReflect for Box<dyn PGTask> {
-    fn from_reflect(_: &(dyn bevy::prelude::PartialReflect + 'static)) -> std::option::Option<Self> { todo!() }
+    fn from_reflect(_: &(dyn bevy::prelude::PartialReflect + 'static)) -> std::option::Option<Self> { 
+        // todo!() 
+        
+        return None;
+    }
 }
