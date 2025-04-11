@@ -30,13 +30,35 @@ pub struct Task {
     pub task:   Box<dyn PGTask + 'static>
 }
 
-#[derive(Debug, Reflect, Clone)]
+#[derive(Debug, Reflect, Clone, Serialize, Deserialize)]
 pub struct JobTasks {
-    // #[serde(deserialize_with = "deserialize_jobtask_data")]
     pub data: HashMap<u32, Task>,
-    // #[serde(skip)] 
     pub current_task_id: u32
 }
+
+fn serialize_job_data<S>(jd: &JobData, serializer: S) -> Result<S::Ok, S::Error>
+where
+    S: Serializer
+{
+    let sjd = SerializeJobData {
+        id: jd.label.clone(),
+        label: jd.label.clone(),
+        fail_task_id: jd.fail_task_id,
+        tasks: jd.tasks.clone()
+    };
+
+    sjd.serialize(serializer)
+}
+
+
+#[derive(Serialize)]
+struct SerializeJobData {
+    id:           String,
+    label:        String,
+    fail_task_id: u32,
+    tasks:        JobTasks
+}
+
 
 impl Default for JobTasks {
     fn default() -> Self {
@@ -136,14 +158,14 @@ impl JobTasks {
 }
 
 
-// /* TASK STRUCTS */
-
-// // Converts the type of ID to int and also updates the ID value
-// fn deserialize_jobtask_data<'de, D>(deserializer: D) -> Result<HashMap<u32, TaskData>, D::Error>
+// // /* TASK STRUCTS */
+// use serde::{de::Error, de::Unexpected};
+// // // Converts the type of ID to int and also updates the ID value
+// fn deserialize_jobtask_data<'de, D>(deserializer: D) -> Result<HashMap<u32, Task>, D::Error>
 // where
 //     D: Deserializer<'de>,
 // {
-//     let str_map = HashMap::<String, TaskData>::deserialize(deserializer)?;
+//     let str_map = HashMap::<String, Task>::deserialize(deserializer)?;
 //     let original_len = str_map.len();
 //     let data = {
 //         str_map
@@ -167,8 +189,6 @@ impl JobTasks {
 //     }
 //     Ok(data)
 // }
-
-
 
 
 #[derive(Serialize, Asset, Clone, Copy, Debug, PartialEq, Eq, Reflect)]
@@ -204,11 +224,12 @@ impl<'de> Deserialize<'de> for JobID {
 }
 
 
-#[derive(Asset, Debug, Reflect, Clone)]
+#[derive(Asset, Debug, Reflect, Clone, Serialize, Deserialize)]
 pub struct JobData {
     pub id:            JobID,
     pub label:         String,
     pub fail_task_id:  u32,
+    // #[serde(serialize_with = "serialize_job_tasks")]
     pub tasks:         JobTasks
 }
 
@@ -243,7 +264,7 @@ impl JobData {
 
 
 
-#[derive(PartialEq, Copy, Clone, Debug, Reflect)]
+#[derive(PartialEq, Copy, Clone, Debug, Reflect, Serialize, Deserialize)]
 pub enum JobStatus {
     ToDo,
     Active,
@@ -252,14 +273,21 @@ pub enum JobStatus {
     Inactive
 }
 
-#[derive(Debug, Reflect, Clone)]
+#[derive(Debug, Reflect, Clone, Serialize, Deserialize)]
 pub struct Job {
     pub entity:        Entity,           
     loopk:             u32,              // Used for loops to count iterations
     status:            JobStatus,
+    #[serde(serialize_with = "serialize_job_data")]
     pub data:          JobData,          // List of tasks to be performed by entity
 }
 
+impl MapEntities for Job {
+    fn map_entities<M: EntityMapper>(&mut self, entity_mapper: &mut M) {
+        info!("Mapping job entity");
+        self.entity = entity_mapper.get_mapped(self.entity);
+    }
+}
 
 impl Job {
     pub fn new(entity: Entity, data: JobData) -> Self {
@@ -290,8 +318,8 @@ impl Job {
     }
 }
 
-#[derive(Resource, Reflect)]
-#[reflect(Resource)]
+#[derive(Resource, Reflect, Serialize, Deserialize, Clone)]
+// #[reflect(Resource)]
 pub struct Jobs {
     pub(crate) data:   Vec<Job>
 }
@@ -528,7 +556,7 @@ impl PartialReflect for Box<dyn PGTask> {
     }
 
     fn try_apply(&mut self, value: &dyn PartialReflect) -> Result<(), ApplyError> {
-        if let Some(task) = value.try_downcast_ref::<Self>() {
+        if let Some(_task) = value.try_downcast_ref::<Self>() {
             // *self = task.clone(); // Ensure PGTask is Clone
             Ok(())
         } else {
@@ -538,7 +566,18 @@ impl PartialReflect for Box<dyn PGTask> {
     }
 
     fn reflect_ref(&self) -> ReflectRef {
-        self.as_ref().reflect_ref()
+        let a = self.as_ref();
+        let b = a.reflect_ref();
+
+        // match b {
+        //     ReflectRef::Array(_) => {info!("tu array");}
+        //     ReflectRef::Enum(_) => {info!("tu enum");}
+        //     ReflectRef::Opaque(_) => {info!("tu opaque");}
+        //     ReflectRef::Struct(stru_data) => {info!("tu struct: {:?}", stru_data.field_at(0));}
+        //     _ => {info!("tu inne");}
+        // }
+
+        return b;
     }
 
     fn reflect_mut(&mut self) -> ReflectMut {
@@ -582,8 +621,13 @@ impl Reflect for Box<dyn PGTask> {
 
 impl FromReflect for Box<dyn PGTask> {
     fn from_reflect(_: &(dyn bevy::prelude::PartialReflect + 'static)) -> std::option::Option<Self> { 
-        // todo!() 
-        
         return None;
     }
+
+    fn take_from_reflect(
+            reflect: Box<dyn PartialReflect>,
+        ) -> std::result::Result<Self, Box<dyn PartialReflect>> {
+        todo!();
+    }
+
 }

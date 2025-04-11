@@ -1,28 +1,25 @@
 use bevy::prelude::*;
 use bevy::app::{App, Plugin, PreUpdate, Update, Startup};
 use bevy::asset::{Asset, AssetServer, Assets, LoadedFolder, Handle};
-use bevy::ecs::schedule::common_conditions::{on_event, resource_exists};
-use bevy::ecs::schedule::{IntoScheduleConfigs, Condition};
+use bevy::ecs::schedule::common_conditions::on_event;
+use bevy::ecs::schedule::IntoScheduleConfigs;
 use bevy::ecs::entity::Entity;
 use bevy::ecs::event::{Event, EventReader};
-use bevy::ecs::reflect::{ReflectResource, ReflectComponent};
+use bevy::ecs::reflect::ReflectComponent;
 use bevy::ecs::component::Component;
 use bevy::ecs::system::{Commands, Local, Res, ResMut, Query};
 use bevy::ecs::resource::Resource;
 use bevy::ecs::query::With;
-use bevy::reflect::{TypePath, Reflect};
-use bevy_common_assets::json::JsonAssetPlugin;
-use bevy_common_assets::toml::TomlAssetPlugin;
+use bevy::reflect::{Reflect, TypePath};
+// use bevy_common_assets::json::JsonAssetPlugin;
+// use bevy_common_assets::toml::TomlAssetPlugin;
 use bevy_pg_calendar::prelude::{Calendar, CalendarNewHourEvent, Cron};
-use serde::{Deserialize, Serialize, Deserializer, Serializer};
-use std::hash::{DefaultHasher, Hash, Hasher};
-use std::fmt;
+use serde::{Deserialize, Serialize};
+use std::hash::Hash;
 
 use crate::common::{
     DespawnTask, DespawnWithDelay, LoopTask, HideTask, ShowTask, TeleportTask, WaitTask, RandomWaitTask
 };
-use crate::types::PGTask;
-
 use super::types::{JobTasks, JobData, Jobs, Job, JobID};
 
 #[derive(Debug, Hash, PartialEq, Eq, Clone, SystemSet)]
@@ -51,17 +48,23 @@ impl Plugin for PGJobsPlugin {
     fn build(&self, app: &mut App) {
         app
         .register_type::<Jobs>()
+        // .register_type_data::<Jobs, ReflectSerialize>()
         .register_type::<Job>()
         .register_type::<JobID>()
         .register_type::<JobData>()
+
         .register_type::<JobTasks>()
+        // .register_type_data::<HashMap<u32, Task>, ReflectSerialize>()
+        // .register_type_data::<HashMap<u32, Task>, ReflectDeserialize>()
+
         .register_type::<JobStatus>()
         .register_type::<JobSchedule>()
         .register_type::<JobDebug>()
         .register_type::<JobPaused>()
 
-        .register_type_data::<Box<dyn PGTask>, ReflectSerialize>()
-        .register_type_data::<Box<dyn PGTask>, ReflectDeserialize>()
+        // .register_type_data::<Box<dyn PGTask>, ReflectSerialize>()
+        // .register_type_data::<Box<dyn PGTask>, ReflectDeserialize>()
+
         .register_type::<DespawnTask>()
         .register_type::<DespawnWithDelay>()
         .register_type::<HideTask>()
@@ -466,29 +469,6 @@ fn start_job(
 }
 
 
-
 #[derive(Component, Reflect)]
 #[reflect(Component)]
 struct JobDebug;
-
-// #[derive(Serialize)]
-// struct SerializeJobData {
-//     id:           String,
-//     label:        String,
-//     fail_task_id: u32,
-//     tasks:        JobTasks
-// }
-
-// fn serialize_job_data<S>(jd: &JobData, serializer: S) -> Result<S::Ok, S::Error>
-// where
-//     S: Serializer
-// {
-//     let sjd = SerializeJobData {
-//         id: jd.label.clone(),
-//         label: jd.label.clone(),
-//         fail_task_id: jd.fail_task_id,
-//         tasks: jd.tasks.clone()
-//     };
-
-//     sjd.serialize(serializer)
-// }

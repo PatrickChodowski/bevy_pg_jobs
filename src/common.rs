@@ -1,3 +1,4 @@
+
 // Collection of very common task implementations
 use bevy::prelude::*;
 use bevy_pg_calendar::prelude::Calendar;
@@ -10,10 +11,12 @@ use crate::prelude::PGTask;
 use pg_jobs_macros::PGTask;
 
 
-#[derive(Component, Clone, Copy, Debug, Reflect, Serialize, Deserialize, PGTask)]
+#[derive(Component, Resource, Clone, Copy, Debug, Reflect, Serialize, Deserialize, PGTask)]
 #[component(storage = "SparseSet")]
-#[reflect(Component)]
+#[reflect(Component, Serialize, Deserialize)]
+#[reflect(Resource)]
 pub struct DespawnTask;
+
 
 #[derive(Component, Clone, Debug, Reflect, Serialize, Deserialize, PGTask)]
 #[component(storage = "SparseSet")]
