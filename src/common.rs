@@ -114,7 +114,7 @@ pub fn loop_task(
     for (task_entity, loop_task, job_index) in tasks.iter(){
 
         if let Some(maxk) = loop_task.maxk {
-            if let Some(job) = jobs.get_mut(job_index.0){
+            if let Some(job) = jobs.get_mut(job_index){
                 // final iteration
                 if job.loopk() >= maxk {
                     job.loop_reset();

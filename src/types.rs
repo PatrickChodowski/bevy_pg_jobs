@@ -367,9 +367,9 @@ impl Jobs {
         return None;
     }
 
-    pub fn get_mut(&mut self, index: u32) -> Option<&mut Job> {
+    pub fn get_mut(&mut self, index: &JobIndex) -> Option<&mut Job> {
         for job in self.data.iter_mut() {
-            if index == job.index {
+            if index.0 == job.index {
                 return Some(job);
             }
         }
@@ -380,7 +380,7 @@ impl Jobs {
         &mut self, 
         commands:    &mut Commands, 
         task_entity: &Entity,
-        job_index:   u32
+        job_index:   &JobIndex
     ) {
         if let Some(job) = self.get_mut(job_index) {
             let next_task_type = job.data.tasks.next_task();
@@ -392,7 +392,7 @@ impl Jobs {
         &mut self, 
         commands:    &mut Commands, 
         task_entity: &Entity,
-        job_index:   u32
+        job_index:   &JobIndex
     ) {
         if let Some(job) = self.get_mut(job_index) {
             let next_task_type = job.data.tasks.set_task(job.data.fail_task_id);
@@ -408,7 +408,7 @@ impl Jobs {
         task_entity: &Entity,
         job_index:   &JobIndex
     ) {
-        if let Some(job) = self.get_mut(job_index.0) {
+        if let Some(job) = self.get_mut(job_index) {
             let next_task_type = job.data.tasks.next_task();
             // info!("next task for Entity: {:?}", task_entity);
             next_task_type.task.insert_task(commands, task_entity);
@@ -424,7 +424,7 @@ impl Jobs {
         job_index:   &JobIndex,
         next_task_id: u32
     ) {
-        if let Some(job) = self.get_mut(job_index.0) {
+        if let Some(job) = self.get_mut(job_index) {
             let next_task_type = job.data.tasks.set_task(next_task_id);
             next_task_type.task.insert_task(commands, task_entity);
         } else {
@@ -504,7 +504,7 @@ impl Jobs {
         entity:    &Entity, 
         job_index: &JobIndex
     ) {
-        if let Some(job) = self.get_mut(job_index.0) {
+        if let Some(job) = self.get_mut(job_index) {
             // info!("pausing job for Entity {:?}", entity);
             job.status = JobStatus::Paused;
             commands.entity(*entity).insert(JobPaused);
@@ -517,7 +517,7 @@ impl Jobs {
         entity:    &Entity,
         job_index: &JobIndex
     ) {
-        if let Some(job) = self.get_mut(job_index.0) {
+        if let Some(job) = self.get_mut(job_index) {
             // info!("unpausing job for Entity {:?}", entity);
             job.status = JobStatus::Active;
             commands.entity(*entity).remove::<JobPaused>();
