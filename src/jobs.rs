@@ -20,7 +20,7 @@ use std::hash::Hash;
 use crate::common::{
     DespawnTask, DespawnWithDelay, LoopTask, HideTask, ShowTask, TeleportTask, WaitTask, RandomWaitTask
 };
-use super::types::{JobTasks, JobData, Jobs, Job, JobID};
+use super::types::{PGTask, JobTasks, JobData, Jobs, Job, JobID, JobIndex};
 
 #[derive(Debug, Hash, PartialEq, Eq, Clone, SystemSet)]
 pub enum TaskSets {
@@ -48,22 +48,18 @@ impl Plugin for PGJobsPlugin {
     fn build(&self, app: &mut App) {
         app
         .register_type::<Jobs>()
-        // .register_type_data::<Jobs, ReflectSerialize>()
         .register_type::<Job>()
         .register_type::<JobID>()
         .register_type::<JobData>()
-
         .register_type::<JobTasks>()
-        // .register_type_data::<HashMap<u32, Task>, ReflectSerialize>()
-        // .register_type_data::<HashMap<u32, Task>, ReflectDeserialize>()
-
+        .register_type::<JobIndex>()
         .register_type::<JobStatus>()
         .register_type::<JobSchedule>()
         .register_type::<JobDebug>()
         .register_type::<JobPaused>()
 
-        // .register_type_data::<Box<dyn PGTask>, ReflectSerialize>()
-        // .register_type_data::<Box<dyn PGTask>, ReflectDeserialize>()
+        .register_type_data::<Box<dyn PGTask>, ReflectSerialize>()
+        .register_type_data::<Box<dyn PGTask>, ReflectDeserialize>()
 
         .register_type::<DespawnTask>()
         .register_type::<DespawnWithDelay>()
@@ -121,7 +117,8 @@ impl Plugin for PGJobsPlugin {
 
 #[derive(Event)]
 pub struct StopJobEvent {
-    pub entity: Entity
+    pub entity:     Entity,
+    pub job_index:  JobIndex
 }
 
 #[derive(Event)]
@@ -251,16 +248,32 @@ impl JobCatalog {
         }
         panic!("Missing job id in the catalog: {}", id);
     }
-    pub fn assign(&self, commands: &mut Commands, job_id: JobID, entity: Entity, jobs: &mut ResMut<Jobs>){
-        jobs.remove_all_clean(commands, &entity);
+    pub fn assign(
+        &self, 
+        commands:   &mut Commands, 
+        job_id:     JobID, 
+        entity:     Entity, 
+        job_index:  &JobIndex,
+        jobs:       &mut ResMut<Jobs>
+    ){
+        jobs.remove_all_clean(commands, &entity, job_index);
         let jobdata = self.get(job_id);
-        let mut job = Job::new(entity, jobdata.clone());
+        let new_index = jobs.get_new_index();
+        let mut job = Job::new(new_index, jobdata.clone());
+        commands.entity(entity).insert(JobIndex(new_index));
+
         job.set_active();
         jobs.add(job);
         let first_task = jobdata.tasks.get_current();
         first_task.task.insert_task(commands, &entity);
     }
-    pub fn start(&self, commands: &mut Commands, job_id: JobID, jobs: &mut ResMut<Jobs>) -> Entity {
+
+    pub fn start(
+        &self, 
+        commands: &mut Commands, 
+        job_id: JobID, 
+        jobs: &mut ResMut<Jobs>
+    ) -> Entity {
         let jobdata = self.get(job_id);
         let job_entity = jobdata.start(commands, jobs);
         return job_entity;
@@ -274,7 +287,10 @@ pub struct JobSettings {
     debug:  bool
 }
 impl JobSettings {
-    fn init(active: bool, debug: bool) -> Self {
+    fn init(
+        active: bool, 
+        debug: bool
+    ) -> Self {
         Self {active, debug}
     }
     pub fn activate(&mut self) {
@@ -444,7 +460,7 @@ fn stop_job(
 ){
     for ev in stop_job.read(){
         info!(" [JOBS] Removing all jobs for entity: {:?}", ev.entity);
-        jobs.remove_all_clean(&mut commands, &ev.entity);
+        jobs.remove_all_clean(&mut commands, &ev.entity, &ev.job_index);
 
         for (text_entity, task_entity) in jobdebugs.iter(){
             if task_entity.parent == ev.entity {
@@ -464,7 +480,8 @@ fn start_job(
 ){
     for ev in start_job.read(){
         info!(" [JOBS] Adding job {} to entity {:?}", ev.job_id, ev.entity);
-        jobs_catalog.assign(&mut commands, ev.job_id, ev.entity, &mut jobs);
+        let job_index = JobIndex(jobs.get_new_index());
+        jobs_catalog.assign(&mut commands, ev.job_id, ev.entity, &job_index, &mut jobs);
     }
 }
 

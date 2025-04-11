@@ -6,7 +6,7 @@ use rand::Rng;
 use serde::{Serialize, Deserialize};
 
 use crate::jobs::JobSchedule;
-use crate::types::Jobs;
+use crate::types::{Jobs, JobIndex};
 use crate::prelude::PGTask;
 use pg_jobs_macros::PGTask;
 
@@ -98,32 +98,32 @@ impl Default for LoopTask {
 pub fn despawn_task(
     mut commands:       Commands,
     mut jobs:           ResMut<Jobs>,
-    tasks:              Query<Entity, With<DespawnTask>>
+    tasks:              Query<(Entity, &JobIndex), With<DespawnTask>>
 ){
-    for entity in tasks.iter(){
+    for (entity, job_index) in tasks.iter(){
         commands.entity(entity).despawn();
-        jobs.remove_all(&entity);
+        jobs.remove_all(job_index);
     }
 }
 
 pub fn loop_task(
     mut commands:   Commands,
     mut jobs:       ResMut<Jobs>,
-    tasks:          Query<(Entity, &LoopTask)>
+    tasks:          Query<(Entity, &LoopTask, &JobIndex)>
 ){
-    for (task_entity, loop_task) in tasks.iter(){
+    for (task_entity, loop_task, job_index) in tasks.iter(){
 
         if let Some(maxk) = loop_task.maxk {
-            if let Some(job) = jobs.get_mut(&task_entity){
+            if let Some(job) = jobs.get_mut(job_index.0){
                 // final iteration
                 if job.loopk() >= maxk {
                     job.loop_reset();
                     commands.entity(task_entity).remove::<LoopTask>();
-                    jobs.next_task(&mut commands, &task_entity); 
+                    jobs.next_task(&mut commands, &task_entity, job_index); 
                 } else {
                     job.loop_incr();
                     commands.entity(task_entity).remove::<LoopTask>();
-                    jobs.jump_task(&mut commands, &task_entity, loop_task.start_id); 
+                    jobs.jump_task(&mut commands, &task_entity, job_index, loop_task.start_id); 
                 }
             }
         }
@@ -133,36 +133,36 @@ pub fn loop_task(
 pub fn show_task(
     mut commands:   Commands,
     mut jobs:       ResMut<Jobs>,
-    mut tasks:      Query<(Entity, &mut Visibility), With<ShowTask>>
+    mut tasks:      Query<(Entity, &mut Visibility, &JobIndex), With<ShowTask>>
 ){
-    for (task_entity, mut vis) in tasks.iter_mut(){
+    for (task_entity, mut vis, job_index) in tasks.iter_mut(){
         *vis = Visibility::Inherited;
         commands.entity(task_entity).remove::<ShowTask>();
-        jobs.next_task(&mut commands, &task_entity);
+        jobs.next_task(&mut commands, &task_entity, job_index);
     }
 }
 
 pub fn hide_task(
     mut commands:   Commands,
     mut jobs:       ResMut<Jobs>,
-    mut tasks:      Query<(Entity, &mut Visibility), With<HideTask>>
+    mut tasks:      Query<(Entity, &mut Visibility, &JobIndex), With<HideTask>>
 ){
-    for (task_entity, mut vis) in tasks.iter_mut(){
+    for (task_entity, mut vis, job_index) in tasks.iter_mut(){
         *vis = Visibility::Hidden;
         commands.entity(task_entity).remove::<HideTask>();
-        jobs.next_task(&mut commands, &task_entity);
+        jobs.next_task(&mut commands, &task_entity, job_index);
     }
 }
 
 pub fn teleport_task(
     mut commands:   Commands,
     mut jobs:       ResMut<Jobs>,
-    mut tasks:      Query<(Entity, &mut Transform, &TeleportTask)>
+    mut tasks:      Query<(Entity, &mut Transform, &TeleportTask, &JobIndex)>
 ){
-    for (task_entity, mut transform, teleport_task) in tasks.iter_mut(){
+    for (task_entity, mut transform, teleport_task, job_index) in tasks.iter_mut(){
         transform.translation = teleport_task.loc;
         commands.entity(task_entity).remove::<TeleportTask>();
-        jobs.next_task(&mut commands, &task_entity);
+        jobs.next_task(&mut commands, &task_entity, job_index);
     }  
 }
 
@@ -182,17 +182,17 @@ pub fn wait_task_time(
     mut commands:   Commands,
     mut jobs:       ResMut<Jobs>,
     time:           Res<Time>,
-    mut tasks:      Query<(Entity, &mut WaitTask)>,
+    mut tasks:      Query<(Entity, &mut WaitTask, &JobIndex)>,
 ){
 
-    for (task_entity, mut wait_task) in tasks.iter_mut(){
+    for (task_entity, mut wait_task, job_index) in tasks.iter_mut(){
         match &mut wait_task.schedule {
             JobSchedule::RealDelay(delay) => {
                 if *delay > 0.0 {
                     *delay -= time.delta_secs();
                 } else {
                     commands.entity(task_entity).remove::<WaitTask>();
-                    jobs.next_task(&mut commands, &task_entity);
+                    jobs.next_task(&mut commands, &task_entity, job_index);
                 }
             }
             _ => {}
@@ -205,15 +205,15 @@ pub fn wait_idle_calendar(
     mut commands: Commands,
     mut jobs:     ResMut<Jobs>,
     calendar:     Res<Calendar>,
-    mut idles:    Query<(Entity, &mut WaitTask)>
+    mut idles:    Query<(Entity, &mut WaitTask, &JobIndex)>
 ){
 
-    for (task_entity, mut wait_task) in idles.iter_mut(){
+    for (task_entity, mut wait_task, job_index) in idles.iter_mut(){
         match &mut wait_task.schedule {
                 JobSchedule::Cron(cron) => {
                     if cron.is_time(&calendar){
                         commands.entity(task_entity).remove::<WaitTask>();
-                        jobs.next_task(&mut commands, &task_entity);
+                        jobs.next_task(&mut commands, &task_entity, job_index);
 
                     }
                  }
@@ -222,7 +222,7 @@ pub fn wait_idle_calendar(
                         *delay -= 1;
                     } else {
                         commands.entity(task_entity).remove::<WaitTask>();
-                        jobs.next_task(&mut commands, &task_entity);
+                        jobs.next_task(&mut commands, &task_entity, job_index);
                     }
                 }
                 _=> {}   

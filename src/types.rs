@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 use dyn_clone::DynClone;
-use bevy::ecs::entity::{MapEntities, EntityMapper};
+// use bevy::ecs::entity::{MapEntities, EntityMapper};
 use std::any::Any;
 use std::fmt::Debug;
 use std::ops::{Deref, DerefMut};
@@ -218,7 +218,7 @@ impl<'de> Deserialize<'de> for JobID {
         let mut s = DefaultHasher::new();
         string_job_id.hash(&mut s);
         let hashed_id = JobID(s.finish() as u32);
-        info!("Job String: {} Hashed ID: {}", string_job_id, hashed_id);
+        // info!("Job String: {} Hashed ID: {}", string_job_id, hashed_id);
         return Ok(hashed_id);
     }
 }
@@ -236,12 +236,16 @@ pub struct JobData {
 impl JobData {
     pub fn assign(
         &self, 
-        commands: &mut Commands, 
-        entity: Entity, 
-        jobs: &mut ResMut<Jobs>
+        commands:  &mut Commands, 
+        entity:    Entity,
+        job_index: &JobIndex,
+        jobs:      &mut ResMut<Jobs>
     ) {
-        jobs.remove_all_clean(commands, &entity);
-        let mut job = Job::new(entity, self.clone());
+        jobs.remove_all_clean(commands, &entity, job_index);
+        let new_index = jobs.get_new_index();
+        let mut job = Job::new(new_index, self.clone());
+        commands.entity(entity).insert(JobIndex(new_index));
+
         job.set_active();
         jobs.add(job);
         let first_task = self.tasks.get_current();
@@ -255,7 +259,10 @@ impl JobData {
     ) -> Entity{ 
         let first_task = self.tasks.get_current();
         let job_entity = first_task.task.spawn_with_task(commands);
-        let mut job = Job::new(job_entity, self.clone());
+        let new_index = jobs.get_new_index();
+        let mut job = Job::new(new_index, self.clone());
+        commands.entity(job_entity).insert(JobIndex(new_index));
+
         job.set_active();
         jobs.add(job);
         return job_entity;
@@ -275,24 +282,33 @@ pub enum JobStatus {
 
 #[derive(Debug, Reflect, Clone, Serialize, Deserialize)]
 pub struct Job {
-    pub entity:        Entity,           
+    // pub entity:        Entity,
+    pub index:         u32,      
     loopk:             u32,              // Used for loops to count iterations
     status:            JobStatus,
     #[serde(serialize_with = "serialize_job_data")]
     pub data:          JobData,          // List of tasks to be performed by entity
 }
 
-impl MapEntities for Job {
-    fn map_entities<M: EntityMapper>(&mut self, entity_mapper: &mut M) {
-        info!("Mapping job entity");
-        self.entity = entity_mapper.get_mapped(self.entity);
-    }
-}
+// impl MapEntities for Job {
+//     fn map_entities<M: EntityMapper>(&mut self, entity_mapper: &mut M) {
+//         // info!("Mapping job entity");
+//         self.entity = entity_mapper.get_mapped(self.entity);
+//     }
+// }
+
+#[derive(Component, Reflect)]
+#[reflect(Component)]
+pub struct JobIndex(pub u32);
+
 
 impl Job {
-    pub fn new(entity: Entity, data: JobData) -> Self {
+    pub fn new(
+        index:      u32,
+        data:       JobData
+    ) -> Self {
         Job {
-            entity,
+            index,
             data,
             loopk: 0,
             status: JobStatus::ToDo,
@@ -319,31 +335,41 @@ impl Job {
 }
 
 #[derive(Resource, Reflect, Serialize, Deserialize, Clone)]
-// #[reflect(Resource)]
+#[reflect(Resource)]
 pub struct Jobs {
-    pub(crate) data:   Vec<Job>
+    pub(crate) data:   Vec<Job>,
+    pub(crate) current_index: u32
 }
 
 impl Jobs {
     pub(crate) fn init() -> Self {
-        Self {data: Vec::new()}
+        Self {
+            data: Vec::new(),
+            current_index: 0
+        }
     }
+
+    pub(crate) fn get_new_index(&mut self) -> u32 {
+        self.current_index += 1;
+        return self.current_index;
+    }
+
     pub fn add(&mut self, job: Job) {
         self.data.push(job); // This allows for multiple jobs per entity :o
     }
 
-    pub fn get(&self, entity: &Entity) -> Option<&Job> {
+    pub fn get(&self, index: u32) -> Option<&Job> {
         for job in self.data.iter() {
-            if entity == &job.entity {
+            if index == job.index {
                 return Some(job);
             }
         }
         return None;
     }
 
-    pub fn get_mut(&mut self, entity: &Entity) -> Option<&mut Job> {
+    pub fn get_mut(&mut self, index: u32) -> Option<&mut Job> {
         for job in self.data.iter_mut() {
-            if entity == &job.entity {
+            if index == job.index {
                 return Some(job);
             }
         }
@@ -352,10 +378,11 @@ impl Jobs {
 
     pub fn possible_next_task(
         &mut self, 
-        commands: &mut Commands, 
-        task_entity: &Entity
+        commands:    &mut Commands, 
+        task_entity: &Entity,
+        job_index:   u32
     ) {
-        if let Some(job) = self.get_mut(&task_entity) {
+        if let Some(job) = self.get_mut(job_index) {
             let next_task_type = job.data.tasks.next_task();
             next_task_type.task.insert_task(commands, task_entity);
         }
@@ -363,10 +390,11 @@ impl Jobs {
 
     pub fn fail_task(
         &mut self, 
-        commands: &mut Commands, 
-        task_entity: &Entity
+        commands:    &mut Commands, 
+        task_entity: &Entity,
+        job_index:   u32
     ) {
-        if let Some(job) = self.get_mut(&task_entity) {
+        if let Some(job) = self.get_mut(job_index) {
             let next_task_type = job.data.tasks.set_task(job.data.fail_task_id);
             next_task_type.task.insert_task(commands, task_entity);
         } else {
@@ -376,10 +404,11 @@ impl Jobs {
 
     pub fn next_task(
         &mut self, 
-        commands: &mut Commands, 
-        task_entity: &Entity
+        commands:    &mut Commands, 
+        task_entity: &Entity,
+        job_index:   &JobIndex
     ) {
-        if let Some(job) = self.get_mut(&task_entity) {
+        if let Some(job) = self.get_mut(job_index.0) {
             let next_task_type = job.data.tasks.next_task();
             // info!("next task for Entity: {:?}", task_entity);
             next_task_type.task.insert_task(commands, task_entity);
@@ -390,11 +419,12 @@ impl Jobs {
 
     pub fn jump_task(
         &mut self, 
-        commands: &mut Commands, 
+        commands:    &mut Commands, 
         task_entity: &Entity,
-         next_task_id: u32
+        job_index:   &JobIndex,
+        next_task_id: u32
     ) {
-        if let Some(job) = self.get_mut(&task_entity) {
+        if let Some(job) = self.get_mut(job_index.0) {
             let next_task_type = job.data.tasks.set_task(next_task_id);
             next_task_type.task.insert_task(commands, task_entity);
         } else {
@@ -402,16 +432,17 @@ impl Jobs {
         }
     }
 
-    pub fn index(&self, entity: &Entity) -> Option<usize> {
-        return self.data.iter().position(|x| &x.entity == entity);
+    pub fn index(&self, job_index: &JobIndex) -> Option<usize> {
+        return self.data.iter().position(|x| x.index == job_index.0);
     }
 
     fn clean_task(
         &mut self, 
-        commands: &mut Commands, 
-        entity: &Entity
+        commands:  &mut Commands, 
+        entity:    &Entity,
+        job_index: &JobIndex
     ) {
-        if let Some(job) = self.get(&entity) {
+        if let Some(job) = self.get(job_index.0) {
             let task = job.data.tasks.get_current();
             // info!("cleaning task {:?} from job: {} for entity: {:?}", task, job.data.Entity, entity);
             task.task.remove(commands, entity);
@@ -420,12 +451,13 @@ impl Jobs {
 
     pub fn upsert(
         &mut self, 
-        commands: &mut Commands, 
-        entity: &Entity, 
-        job: Job
+        commands:  &mut Commands, 
+        entity:    &Entity, 
+        job_index: &JobIndex,
+        job:       Job
     ) {
-        if let Some(index) = self.index(entity) {
-            self.clean_task(commands, entity);
+        if let Some(index) = self.index(job_index) {
+            self.clean_task(commands, entity, job_index);
             self.data[index] = job;
         } else {
             self.data.push(job);
@@ -433,23 +465,29 @@ impl Jobs {
     }
     pub fn remove(
         &mut self, 
-        commands: &mut Commands, 
-        job_id: JobID, 
-        entity: &Entity
+        commands:  &mut Commands, 
+        job_id:    JobID, 
+        entity:    &Entity,
+        job_index: &JobIndex
     ) {
-        self.clean_task(commands, entity);
+        self.clean_task(commands, entity, job_index);
         self.data
-            .retain(|x| !(&x.entity == entity && x.data.id == job_id))
+            .retain(|x| !(x.index == job_index.0 && x.data.id == job_id))
     }
 
-    pub fn remove_all(&mut self, entity: &Entity) {
+    pub fn remove_all(&mut self, job_index: &JobIndex) {
         // info!("in remove all? {:?}", entity);
-        self.data.retain(|x| &x.entity != entity)
+        self.data.retain(|x| x.index != job_index.0)
     }
 
-    pub fn remove_all_clean(&mut self, commands: &mut Commands, entity: &Entity) {
-        self.clean_task(commands, entity);
-        self.data.retain(|x| &x.entity != entity)
+    pub fn remove_all_clean(
+        &mut self, 
+        commands:  &mut Commands, 
+        entity:    &Entity, 
+        job_index: &JobIndex,
+    ) {
+        self.clean_task(commands, entity, job_index);
+        self.data.retain(|x| x.index != job_index.0)
     }
 
     pub fn clear(&mut self) {
@@ -460,31 +498,33 @@ impl Jobs {
         &self.data
     }
 
-    pub fn pause(&mut self, commands: &mut Commands, entity: &Entity) {
-        if let Some(job) = self.get_mut(entity) {
+    pub fn pause(
+        &mut self, 
+        commands:  &mut Commands, 
+        entity:    &Entity, 
+        job_index: &JobIndex
+    ) {
+        if let Some(job) = self.get_mut(job_index.0) {
             // info!("pausing job for Entity {:?}", entity);
             job.status = JobStatus::Paused;
             commands.entity(*entity).insert(JobPaused);
         }
     }
 
-    pub fn unpause(&mut self, commands: &mut Commands, entity: &Entity) {
-        if let Some(job) = self.get_mut(entity) {
+    pub fn unpause(
+        &mut self, 
+        commands:  &mut Commands, 
+        entity:    &Entity,
+        job_index: &JobIndex
+    ) {
+        if let Some(job) = self.get_mut(job_index.0) {
             // info!("unpausing job for Entity {:?}", entity);
             job.status = JobStatus::Active;
             commands.entity(*entity).remove::<JobPaused>();
         }
     }
-    
 }
 
-impl MapEntities for Jobs {
-    fn map_entities<M: EntityMapper>(&mut self, entity_mapper: &mut M) {
-        for job in self.data.iter_mut(){
-            job.entity = entity_mapper.get_mapped(job.entity);
-        }
-    }
-}
 
 impl GetTypeRegistration for Box<dyn PGTask> {
     fn get_type_registration() -> bevy::reflect::TypeRegistration {
@@ -566,18 +606,7 @@ impl PartialReflect for Box<dyn PGTask> {
     }
 
     fn reflect_ref(&self) -> ReflectRef {
-        let a = self.as_ref();
-        let b = a.reflect_ref();
-
-        // match b {
-        //     ReflectRef::Array(_) => {info!("tu array");}
-        //     ReflectRef::Enum(_) => {info!("tu enum");}
-        //     ReflectRef::Opaque(_) => {info!("tu opaque");}
-        //     ReflectRef::Struct(stru_data) => {info!("tu struct: {:?}", stru_data.field_at(0));}
-        //     _ => {info!("tu inne");}
-        // }
-
-        return b;
+        return self.as_ref().reflect_ref();
     }
 
     fn reflect_mut(&mut self) -> ReflectMut {
