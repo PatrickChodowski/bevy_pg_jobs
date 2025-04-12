@@ -238,10 +238,8 @@ impl JobData {
         &self, 
         commands:  &mut Commands, 
         entity:    Entity,
-        job_index: &JobIndex,
         jobs:      &mut ResMut<Jobs>
     ) {
-        jobs.remove_all_clean(commands, &entity, job_index);
         let new_index = jobs.get_new_index();
         let mut job = Job::new(new_index, self.clone());
         commands.entity(entity).insert(JobIndex(new_index));
@@ -349,7 +347,7 @@ impl Jobs {
         }
     }
 
-    pub(crate) fn get_new_index(&mut self) -> u32 {
+    pub fn get_new_index(&mut self) -> u32 {
         self.current_index += 1;
         return self.current_index;
     }
@@ -487,7 +485,8 @@ impl Jobs {
         job_index: &JobIndex,
     ) {
         self.clean_task(commands, entity, job_index);
-        self.data.retain(|x| x.index != job_index.0)
+        self.data.retain(|x| x.index != job_index.0);
+        commands.entity(*entity).remove::<JobIndex>();
     }
 
     pub fn clear(&mut self) {
