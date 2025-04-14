@@ -95,7 +95,7 @@ impl JobTasks {
         task: Box<dyn PGTask>, 
         next: Option<u32>
     ){
-        let id = self.last_index();
+        let id = self.next_index();
         let t: Task = Task{
             id, 
             next,
@@ -118,7 +118,7 @@ impl JobTasks {
         self.data.insert(id, t);
     }
 
-    fn last_index(&self) -> u32 {
+    fn next_index(&self) -> u32 {
         let Some(max_key) = self.data.keys().max() else {return 0};
         return *max_key+1;
     }
