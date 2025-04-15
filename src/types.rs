@@ -335,7 +335,7 @@ impl Job {
 #[derive(Resource, Reflect, Serialize, Deserialize, Clone)]
 #[reflect(Resource)]
 pub struct Jobs {
-    pub(crate) data:   Vec<Job>,
+    pub        data:   Vec<Job>,
     pub(crate) current_index: u32
 }
 
