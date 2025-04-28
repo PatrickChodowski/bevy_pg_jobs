@@ -60,6 +60,7 @@ impl Plugin for PGJobsPlugin {
 
         .register_type_data::<Box<dyn PGTask>, ReflectSerialize>()
         .register_type_data::<Box<dyn PGTask>, ReflectDeserialize>()
+        // .register_type_data::<Job, ReflectMapEntities>()
 
         .register_type::<DespawnTask>()
         .register_type::<DespawnWithDelay>()
