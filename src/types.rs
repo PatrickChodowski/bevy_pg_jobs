@@ -1,10 +1,11 @@
 use bevy::prelude::*;
 use dyn_clone::DynClone;
-// use bevy::ecs::entity::{MapEntities, EntityMapper};
+use bevy::ecs::entity::{MapEntities, EntityMapper};
+use bevy::ecs::reflect::ReflectMapEntities;
 use std::any::Any;
 use std::fmt::Debug;
 use std::ops::{Deref, DerefMut};
-use bevy::platform_support::collections::HashMap;
+use bevy::platform::collections::HashMap;
 use bevy::reflect::utility::GenericTypeInfoCell;
 use std::hash::{DefaultHasher, Hash, Hasher};
 use std::fmt;
@@ -278,9 +279,11 @@ pub enum JobStatus {
     Inactive
 }
 
-#[derive(Debug, Reflect, Clone, Serialize, Deserialize)]
+#[derive(Resource, Debug, Reflect, Clone, Serialize, Deserialize, MapEntities)]
+#[reflect(MapEntities)]
 pub struct Job {
-    // pub entity:        Entity,
+    #[entities]
+    pub entity:        Option<Entity>,
     pub index:         u32,      
     loopk:             u32,              // Used for loops to count iterations
     status:            JobStatus,
@@ -291,7 +294,9 @@ pub struct Job {
 // impl MapEntities for Job {
 //     fn map_entities<M: EntityMapper>(&mut self, entity_mapper: &mut M) {
 //         // info!("Mapping job entity");
-//         self.entity = entity_mapper.get_mapped(self.entity);
+//         if self.entity.is_some(){
+//             self.entity = Some(entity_mapper.get_mapped(self.entity.unwrap()));
+//         }
 //     }
 // }
 
@@ -306,11 +311,15 @@ impl Job {
         data:       JobData
     ) -> Self {
         Job {
+            entity: None,
             index,
             data,
             loopk: 0,
             status: JobStatus::ToDo,
         }
+    }
+    pub fn set_entity(&mut self, entity: Entity) {
+        self.entity = Some(entity);
     }
     pub fn loop_reset(&mut self){
         self.loopk = 0;

@@ -455,19 +455,11 @@ fn trigger_jobs_time(
 fn stop_job(
     mut commands:       Commands,
     mut jobs:           ResMut<Jobs>,
-    mut stop_job:       EventReader<StopJobEvent>,
-    jobdebugs:          Query<(Entity, &ChildOf), With<JobDebug>>
+    mut stop_job:       EventReader<StopJobEvent>
 ){
     for ev in stop_job.read(){
         info!(" [JOBS] Removing all jobs for entity: {:?}", ev.entity);
         jobs.remove_all_clean(&mut commands, &ev.entity, &ev.job_index);
-
-        for (text_entity, task_entity) in jobdebugs.iter(){
-            if task_entity.parent == ev.entity {
-                commands.entity(text_entity).despawn();
-                break;
-            }
-        }
     }
 
 }
