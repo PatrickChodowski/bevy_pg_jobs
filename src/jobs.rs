@@ -11,8 +11,8 @@ use bevy::ecs::system::{Commands, Local, Res, ResMut, Query};
 use bevy::ecs::resource::Resource;
 use bevy::ecs::query::With;
 use bevy::reflect::{Reflect, TypePath};
-// use bevy_common_assets::json::JsonAssetPlugin;
-// use bevy_common_assets::toml::TomlAssetPlugin;
+use bevy_common_assets::json::JsonAssetPlugin;
+use bevy_common_assets::toml::TomlAssetPlugin;
 use bevy_pg_calendar::prelude::{Calendar, CalendarNewHourEvent, Cron};
 use serde::{Deserialize, Serialize};
 use std::hash::Hash;
@@ -81,12 +81,12 @@ impl Plugin for PGJobsPlugin {
             ).chain()
         )
 
-        // .add_plugins(JsonAssetPlugin::<JobData>::new(&["job.json"]))
-        // .add_plugins(TomlAssetPlugin::<JobData>::new(&["job.toml"]))
-        // .add_plugins(JsonAssetPlugin::<JobTrigger>::new(&["trigger.json"]))
-        // .add_plugins(TomlAssetPlugin::<JobTrigger>::new(&["trigger.toml"]))
-        // .add_plugins(JsonAssetPlugin::<JobTriggers>::new(&["triggers.json"]))
-        // .add_plugins(TomlAssetPlugin::<JobTriggers>::new(&["triggers.toml"]))
+        .add_plugins(JsonAssetPlugin::<JobData>::new(&["job.json"]))
+        .add_plugins(TomlAssetPlugin::<JobData>::new(&["job.toml"]))
+        .add_plugins(JsonAssetPlugin::<JobTrigger>::new(&["trigger.json"]))
+        .add_plugins(TomlAssetPlugin::<JobTrigger>::new(&["trigger.toml"]))
+        .add_plugins(JsonAssetPlugin::<JobTriggers>::new(&["triggers.json"]))
+        .add_plugins(TomlAssetPlugin::<JobTriggers>::new(&["triggers.toml"]))
 
         .insert_resource(JobSettings::init(self.active, self.debug))
         .insert_resource(JobCatalog::init())
@@ -374,12 +374,12 @@ pub enum JobStatus {
     Inactive
 }
 
-#[derive(Asset, TypePath, Clone, Debug)]
+#[derive(Asset, TypePath, Clone, Debug, Serialize, Deserialize)]
 pub struct JobTriggers {
     pub data: Vec<JobTrigger>
 }
 
-#[derive(Asset, TypePath, Clone, Debug)]
+#[derive(Asset, TypePath, Clone, Debug, Serialize, Deserialize)]
 pub struct JobTrigger {
     pub trigger_id:    u32,
     pub job_id:        JobID,

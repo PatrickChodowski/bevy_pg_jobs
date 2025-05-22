@@ -1,6 +1,7 @@
 use bevy::prelude::*;
 use dyn_clone::DynClone;
 use bevy::ecs::entity::{MapEntities, EntityMapper};
+use serde::{de::Error, de::Unexpected};
 use bevy::ecs::reflect::ReflectMapEntities;
 use std::any::Any;
 use std::fmt::Debug;
@@ -33,6 +34,7 @@ pub struct Task {
 
 #[derive(Debug, Reflect, Clone, Serialize, Deserialize)]
 pub struct JobTasks {
+    #[serde(deserialize_with="deserialize_jobtask_data")]    
     pub data: HashMap<u32, Task>,
     pub current_task_id: u32
 }
@@ -159,37 +161,34 @@ impl JobTasks {
 }
 
 
-// // /* TASK STRUCTS */
-// use serde::{de::Error, de::Unexpected};
-// // // Converts the type of ID to int and also updates the ID value
-// fn deserialize_jobtask_data<'de, D>(deserializer: D) -> Result<HashMap<u32, Task>, D::Error>
-// where
-//     D: Deserializer<'de>,
-// {
-//     let str_map = HashMap::<String, Task>::deserialize(deserializer)?;
-//     let original_len = str_map.len();
-//     let data = {
-//         str_map
-//             .into_iter()
-//             .map(|(str_key, mut value)| match str_key.parse() {
-//                 Ok(int_key) => {
-//                     value.id = int_key;    
-//                     Ok((int_key, value))
-//                 },
-//                 Err(_) => Err({
-//                     Error::invalid_value(
-//                         Unexpected::Str(&str_key),
-//                         &"a non-negative integer",
-//                     )
-//                 }),
-//             }).collect::<Result<HashMap<_, _>, _>>()?
-//     };
-//     // multiple strings could parse to the same int, e.g "0" and "00"
-//     if data.len() < original_len {
-//         return Err(Error::custom("detected duplicate integer key"));
-//     }
-//     Ok(data)
-// }
+fn deserialize_jobtask_data<'de, D>(deserializer: D) -> Result<HashMap<u32, Task>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let str_map = HashMap::<String, Task>::deserialize(deserializer)?;
+    let original_len = str_map.len();
+    let data = {
+        str_map
+            .into_iter()
+            .map(|(str_key, mut value)| match str_key.parse() {
+                Ok(int_key) => {
+                    value.id = int_key;    
+                    Ok((int_key, value))
+                },
+                Err(_) => Err({
+                    Error::invalid_value(
+                        Unexpected::Str(&str_key),
+                        &"a non-negative integer",
+                    )
+                }),
+            }).collect::<Result<HashMap<_, _>, _>>()?
+    };
+    // multiple strings could parse to the same int, e.g "0" and "00"
+    if data.len() < original_len {
+        return Err(Error::custom("detected duplicate integer key"));
+    }
+    Ok(data)
+}
 
 
 #[derive(Serialize, Asset, Clone, Copy, Debug, PartialEq, Eq, Reflect)]
@@ -288,6 +287,7 @@ pub struct Job {
     loopk:             u32,              // Used for loops to count iterations
     status:            JobStatus,
     #[serde(serialize_with = "serialize_job_data")]
+    // #[serde(deserialize_with="deserialize_job_data")]
     pub data:          JobData,          // List of tasks to be performed by entity
 }
 
@@ -300,7 +300,7 @@ pub struct Job {
 //     }
 // }
 
-#[derive(Component, Reflect)]
+#[derive(Component, Reflect, Clone, Copy)]
 #[reflect(Component)]
 pub struct JobIndex(pub u32);
 
