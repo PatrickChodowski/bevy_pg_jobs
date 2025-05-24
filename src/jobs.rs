@@ -91,8 +91,8 @@ impl Plugin for PGJobsPlugin {
         .add_event::<StartJobEvent>()
 
         .add_systems(Startup,   init)
-        // .add_systems(Update,    track.run_if(resource_exists::<LoadedJobDataHandles>
-        //                              .and(resource_exists::<LoadedJobTriggerHandles>)))
+        .add_systems(Update,    track.run_if(resource_exists::<LoadedJobDataHandles>
+                                     .and(resource_exists::<LoadedJobTriggerHandles>)))
 
         .add_systems(PreUpdate, (
                 trigger_jobs_calendar.run_if(on_event::<CalendarNewHourEvent>), 
@@ -168,16 +168,16 @@ fn track(
 ){
 
     if !job_ready.data_ready {
-        if let Some(scenes_load_state) = ass.get_recursive_dependency_load_state(&loaded_jobdata.0) {
-            if scenes_load_state.is_loaded(){
+        if let Some(jobdata_load_state) = ass.get_recursive_dependency_load_state(&loaded_jobdata.0) {
+            if jobdata_load_state.is_loaded(){
                 job_ready.data_ready = true;
             }
         }
     }
     if !job_ready.triggers_ready {
-        if let Some(scenes_load_state) = ass.get_recursive_dependency_load_state(&loaded_jobtrigger.0) {
-            if scenes_load_state.is_loaded(){
-                job_ready.data_ready = true;
+        if let Some(jobtriggers_load_state) = ass.get_recursive_dependency_load_state(&loaded_jobtrigger.0) {
+            if jobtriggers_load_state.is_loaded(){
+                job_ready.triggers_ready = true;
             }
         }
     }
@@ -196,27 +196,20 @@ fn track(
         for (_job_id, trigger_data) in ass_triggers.iter_mut(){
             for jobtrigger in trigger_data.data.iter_mut(){
                 jobtrigger.schedule.parse();
+                info!(" [JOBS] Added JobTrigger {}", jobtrigger.trigger_id);
                 jobs_scheduler.add(jobtrigger.clone());
             }
         }
 
         commands.remove_resource::<LoadedJobDataHandles>();
         commands.remove_resource::<LoadedJobTriggerHandles>();
-
     }
-
 }
 
 pub fn if_jobs_active(
     job_settings: Res<JobSettings>
 ) -> bool {
     job_settings.active
-}
-
-pub fn if_jobs_debug(
-    job_settings: Res<JobSettings>
-) -> bool {
-    job_settings.debug
 }
 
 // Stores JobDatas from assets job.toml files
