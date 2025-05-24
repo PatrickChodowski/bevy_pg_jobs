@@ -238,6 +238,7 @@ impl JobData {
         commands:  &mut Commands, 
         entity:    Entity
     ) {
+        info!(" [JOBS] Assign JobData {} to {}", self.label, entity);
         let mut job = Job::new(self.clone());
         job.set_active();
         commands.entity(entity).insert(job);
@@ -250,7 +251,7 @@ impl JobData {
         &self, 
         commands: &mut Commands
     ) -> Entity{ 
-        info!(" [JOBS] Starting job {}", self.label);
+        info!(" [JOBS] Starting JobData {}", self.label);
         let first_task = self.tasks.get_current();
         let job_entity = first_task.task.spawn(commands);
         let mut job = Job::new(self.clone());
@@ -292,6 +293,31 @@ impl Job {
             status: JobStatus::ToDo,
         }
     }
+
+    pub fn assign(
+        &mut self, 
+        commands:  &mut Commands, 
+        entity:    Entity
+    ) {
+        info!(" [JOBS] Assign job {} to {}", self.data.label, entity);
+        self.set_active();
+        commands.entity(entity).insert(self.clone());
+        let first_task = self.data.tasks.get_current();
+        first_task.task.insert(commands, &entity);
+    }
+
+    pub fn start(
+        &mut self, 
+        commands: &mut Commands
+    ) -> Entity{ 
+        info!(" [JOBS] Starting job {}", self.data.label);
+        self.set_active();
+        let first_task = self.data.tasks.get_current();
+        let job_entity = first_task.task.spawn(commands);
+        commands.entity(job_entity).insert(self.clone());
+        return job_entity;
+    }
+
 
     pub fn current_task(
         &self
@@ -383,60 +409,6 @@ impl Job {
     }
 
 }
-
-/* 
-    pub fn possible_next_task(
-        &mut self, 
-        commands:    &mut Commands, 
-        task_entity: &Entity,
-        job_index:   &JobIndex
-    ) {
-        if let Some(job) = self.get_mut(job_index) {
-            let next_task_type = job.data.tasks.next_task();
-            next_task_type.task.insert(commands, task_entity);
-        }
-    }
-
-    fn clean_task(
-        &mut self, 
-        commands:  &mut Commands, 
-        entity:    &Entity,
-        job_index: &JobIndex
-    ) {
-        if let Some(job) = self.get(job_index.0) {
-            let task = job.data.tasks.get_current();
-            // info!("cleaning task {:?} from job: {} for entity: {:?}", task, job.data.Entity, entity);
-            task.task.remove(commands, entity);
-        }
-    }
-
-    pub fn upsert(
-        &mut self, 
-        commands:  &mut Commands, 
-        entity:    &Entity, 
-        job_index: &JobIndex,
-        job:       Job
-    ) {
-        if let Some(index) = self.index(job_index) {
-            self.clean_task(commands, entity, job_index);
-            self.data[index] = job;
-        } else {
-            self.data.push(job);
-        }
-    }
-    pub fn remove(
-        &mut self, 
-        commands:  &mut Commands, 
-        job_id:    JobID, 
-        entity:    &Entity,
-        job_index: &JobIndex
-    ) {
-        self.clean_task(commands, entity, job_index);
-        self.data
-            .retain(|x| !(x.index == job_index.0 && x.data.id == job_id))
-    }
-
-*/
 
 impl GetTypeRegistration for Box<dyn PGTask> {
     fn get_type_registration() -> bevy::reflect::TypeRegistration {
