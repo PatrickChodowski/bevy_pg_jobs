@@ -14,11 +14,11 @@ pub fn derive_pg_task(input: TokenStream) -> TokenStream {
         impl PGTask for #name {
 
             fn insert(&self, commands: &mut Commands, entity: &Entity) {
-                commands.entity(*entity).insert(self.clone());
+                commands.entity(*entity).try_insert(self.clone());
             }
 
             fn remove(&self, commands: &mut Commands, entity: &Entity){
-                commands.entity(*entity).remove::<Self>();
+                commands.entity(*entity).try_remove::<Self>();
             }
 
             fn spawn(&self, commands: &mut Commands) -> Entity {

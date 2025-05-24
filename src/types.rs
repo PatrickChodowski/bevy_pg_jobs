@@ -154,7 +154,7 @@ impl JobTasks {
         if let Some(task) = self.data.get(&self.current_task_id) {
             return task;
         } else {
-            panic!("no task for {}", self.current_task_id);
+            panic!("[JOBS] get current missing: {} ", self.current_task_id);
         }
     }
 }
@@ -250,6 +250,7 @@ impl JobData {
         &self, 
         commands: &mut Commands
     ) -> Entity{ 
+        info!(" [JOBS] Starting job {}", self.label);
         let first_task = self.tasks.get_current();
         let job_entity = first_task.task.spawn(commands);
         let mut job = Job::new(self.clone());

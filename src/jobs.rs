@@ -196,7 +196,8 @@ fn track(
         for (_job_id, trigger_data) in ass_triggers.iter_mut(){
             for jobtrigger in trigger_data.data.iter_mut(){
                 jobtrigger.schedule.parse();
-                info!(" [JOBS] Added JobTrigger {}", jobtrigger.trigger_id);
+                info!(" [JOBS] Added JobTrigger {} active: {}", 
+                     jobtrigger.trigger_id, jobtrigger.active);
                 jobs_scheduler.add(jobtrigger.clone());
             }
         }
@@ -311,16 +312,19 @@ impl JobScheduler {
         panic!("Missing job trigger id in the scheduler: {}", trigger_id);
     }
     pub fn deactivate_all(&mut self){
+        info!(" [JOBS DEBUG] Deactivate all triggers");
         for jobtrigger in self.data.iter_mut(){
             jobtrigger.active = false;
         }
     }
     pub fn activate_all(&mut self){
+        info!(" [JOBS DEBUG] Activate all triggers");
         for jobtrigger in self.data.iter_mut(){
             jobtrigger.active = true;
         }
     }
     pub fn activate(&mut self, trigger_id: &u32){
+        info!(" [JOBS DEBUG] Activate trigger: {}", trigger_id);
         for jobtrigger in self.data.iter_mut(){
             if &jobtrigger.trigger_id == trigger_id {
                 jobtrigger.active = true;
@@ -328,8 +332,8 @@ impl JobScheduler {
             }
         }
     }
-    #[allow(dead_code)]
     pub fn deactivate(&mut self, trigger_id: &u32){
+        info!(" [JOBS DEBUG] Deactivate trigger: {}", trigger_id);
         for jobtrigger in self.data.iter_mut(){
             if &jobtrigger.trigger_id == trigger_id {
                 jobtrigger.active = false;

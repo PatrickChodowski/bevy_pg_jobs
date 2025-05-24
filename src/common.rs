@@ -145,6 +145,7 @@ pub fn wait_task_time(
                     *delay -= time.delta_secs();
                 } else {
                     job.next_task(&mut commands, &task_entity);
+                    commands.entity(task_entity).remove::<WaitTask>();
                 }
             }
             _ => {}
@@ -163,12 +164,14 @@ pub fn wait_idle_calendar(
                 JobSchedule::Cron(cron) => {
                     if cron.is_time(&calendar){
                         job.next_task(&mut commands, &task_entity);
+                        commands.entity(task_entity).remove::<WaitTask>();
                     }
                  }
                  JobSchedule::Delay(delay) => {
                     if *delay > 0 {
                         *delay -= 1;
                     } else {
+                        commands.entity(task_entity).remove::<WaitTask>();
                         job.next_task(&mut commands, &task_entity);
                     }
                 }
