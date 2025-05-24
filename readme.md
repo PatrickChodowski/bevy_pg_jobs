@@ -1,10 +1,6 @@
 # Bevy PG Jobs
 
-A template code for Bevy game engine that I use in my games.
-
-!! Its not a ready plugin !!
-
-In order to use it you need to add it to your game and edit the pg_tasks file with your own tasks, structs, and systems
+Run list of components on an entity in a sequence. 
 
 ## How it works
 

@@ -1,0 +1,75 @@
+(
+  resources: {},
+  entities: {
+    4294967308: (
+      components: {
+        "bevy_pg_jobs::common::WaitTask": (
+          schedule: RealDelay(1.4655979),
+        ),
+        "bevy_pg_jobs::types::Job": (
+          loopk: 0,
+          status: Active,
+          data: (
+            id: (0),
+            label: "TestJob",
+            fail_task_id: 1000,
+            tasks: (
+              data: {
+                0: (
+                  id: 0,
+                  next: None,
+                  task: (
+                    schedule: RealDelay(2.0),
+                  ),
+                ),
+                3: (
+                  id: 3,
+                  next: None,
+                  task: (),
+                ),
+                2: (
+                  id: 2,
+                  next: None,
+                  task: (
+                    schedule: RealDelay(2.0),
+                  ),
+                ),
+                4: (
+                  id: 4,
+                  next: Some(1000),
+                  task: (
+                    schedule: RealDelay(2.0),
+                  ),
+                ),
+                1000: (
+                  id: 1000,
+                  next: None,
+                  task: (),
+                ),
+                1: (
+                  id: 1,
+                  next: None,
+                  task: (),
+                ),
+              },
+              current_task_id: 2,
+            ),
+          ),
+        ),
+        "bevy_render::primitives::Aabb": (
+          center: (0.0, 0.0, 0.0),
+          half_extents: (10.0, 10.0, 0.0),
+        ),
+        "bevy_render::view::visibility::InheritedVisibility": (false),
+        "bevy_render::view::visibility::ViewVisibility": (false),
+        "bevy_render::view::visibility::Visibility": Hidden,
+        "bevy_transform::components::global_transform::GlobalTransform": ((1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0)),
+        "bevy_transform::components::transform::Transform": (
+          translation: (0.0, 0.0, 1.0),
+          rotation: (0.0, 0.0, 0.0, 1.0),
+          scale: (1.0, 1.0, 1.0),
+        ),
+      },
+    ),
+  },
+)

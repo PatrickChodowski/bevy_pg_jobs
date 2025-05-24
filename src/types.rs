@@ -228,7 +228,6 @@ pub struct JobData {
     pub id:            JobID,
     pub label:         String,
     pub fail_task_id:  u32,
-    // #[serde(serialize_with = "serialize_job_tasks")]
     pub tasks:         JobTasks
 }
 

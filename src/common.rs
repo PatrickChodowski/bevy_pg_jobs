@@ -9,25 +9,27 @@ use crate::prelude::{PGTask, Job, JobSchedule};
 use pg_jobs_macros::PGTask;
 
 
-#[derive(Component, Resource, Clone, Copy, Debug, Reflect, Serialize, Deserialize, PGTask)]
+#[derive(Component, Clone, Copy, Debug, Reflect, Serialize, Deserialize, PGTask)]
 #[component(storage = "SparseSet")]
 #[reflect(Component, Serialize, Deserialize)]
-#[reflect(Resource)]
 pub struct DespawnTask;
 
 #[derive(Component, Clone, Copy, Debug, Reflect, Serialize, Deserialize, PGTask)]
 #[component(storage = "SparseSet")]
 #[reflect(Component)]
+#[reflect(Serialize)]
 pub struct HideTask;
 
 #[derive(Component, Clone, Copy, Debug, Reflect, Serialize, Deserialize, PGTask)]
 #[component(storage = "SparseSet")]
 #[reflect(Component)]
+#[reflect(Serialize)]
 pub struct ShowTask;
 
 #[derive(Component, Clone, Debug, Reflect, Serialize, Deserialize, PGTask)]
 #[component(storage = "SparseSet")]
 #[reflect(Component)]
+#[reflect(Serialize)]
 pub struct WaitTask {
     pub schedule: JobSchedule
 }
