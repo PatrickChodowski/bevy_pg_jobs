@@ -13,7 +13,7 @@ pub fn derive_pg_task(input: TokenStream) -> TokenStream {
         #[typetag::serde]
         impl PGTask for #name {
 
-            fn insert_task(&self, commands: &mut Commands, entity: &Entity) {
+            fn insert(&self, commands: &mut Commands, entity: &Entity) {
                 commands.entity(*entity).insert(self.clone());
             }
 
@@ -21,7 +21,7 @@ pub fn derive_pg_task(input: TokenStream) -> TokenStream {
                 commands.entity(*entity).remove::<Self>();
             }
 
-            fn spawn_with_task(&self, commands: &mut Commands) -> Entity {
+            fn spawn(&self, commands: &mut Commands) -> Entity {
                 let entity = commands.spawn(self.clone()).id();
                 return entity;
             }

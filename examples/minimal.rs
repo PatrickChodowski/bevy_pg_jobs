@@ -22,9 +22,7 @@ fn main() {
     .run();
 }
 
-fn setup(
-    mut jobs: ResMut<Jobs>
-){
+fn setup(){
     let mut tasks = JobTasks::new();
     tasks.first(Box::new(Player), None);
     tasks.next(Box::new(ID{id: 0}), None);

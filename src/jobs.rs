@@ -7,9 +7,8 @@ use bevy::ecs::entity::Entity;
 use bevy::ecs::event::{Event, EventReader};
 use bevy::ecs::reflect::ReflectComponent;
 use bevy::ecs::component::Component;
-use bevy::ecs::system::{Commands, Local, Res, ResMut, Query};
+use bevy::ecs::system::{Commands, Local, Res, ResMut};
 use bevy::ecs::resource::Resource;
-use bevy::ecs::query::With;
 use bevy::reflect::{Reflect, TypePath};
 use bevy_common_assets::json::JsonAssetPlugin;
 use bevy_common_assets::toml::TomlAssetPlugin;
@@ -18,9 +17,9 @@ use serde::{Deserialize, Serialize};
 use std::hash::Hash;
 
 use crate::common::{
-    DespawnTask, DespawnWithDelay, LoopTask, HideTask, ShowTask, TeleportTask, WaitTask, RandomWaitTask
+    DespawnTask, LoopTask, HideTask, ShowTask, TeleportTask, WaitTask, RandomWaitTask
 };
-use super::types::{PGTask, JobTasks, JobData, Jobs, Job, JobID, JobIndex};
+use super::types::{PGTask, JobTasks, JobData, Job, JobID};
 
 #[derive(Debug, Hash, PartialEq, Eq, Clone, SystemSet)]
 pub enum TaskSets {
@@ -47,12 +46,10 @@ impl Default for PGJobsPlugin {
 impl Plugin for PGJobsPlugin {
     fn build(&self, app: &mut App) {
         app
-        .register_type::<Jobs>()
         .register_type::<Job>()
         .register_type::<JobID>()
         .register_type::<JobData>()
         .register_type::<JobTasks>()
-        .register_type::<JobIndex>()
         .register_type::<JobStatus>()
         .register_type::<JobSchedule>()
         .register_type::<JobDebug>()
@@ -60,10 +57,8 @@ impl Plugin for PGJobsPlugin {
 
         .register_type_data::<Box<dyn PGTask>, ReflectSerialize>()
         .register_type_data::<Box<dyn PGTask>, ReflectDeserialize>()
-        // .register_type_data::<Job, ReflectMapEntities>()
 
         .register_type::<DespawnTask>()
-        .register_type::<DespawnWithDelay>()
         .register_type::<HideTask>()
         .register_type::<ShowTask>()
         .register_type::<RandomWaitTask>()
@@ -91,7 +86,6 @@ impl Plugin for PGJobsPlugin {
         .insert_resource(JobSettings::init(self.active, self.debug))
         .insert_resource(JobCatalog::init())
         .insert_resource(JobScheduler::init())
-        .insert_resource(Jobs::init())
 
         .add_event::<StopJobEvent>()
         .add_event::<StartJobEvent>()
@@ -118,8 +112,7 @@ impl Plugin for PGJobsPlugin {
 
 #[derive(Event)]
 pub struct StopJobEvent {
-    pub entity:     Entity,
-    pub job_index:  JobIndex
+    pub entity:     Entity
 }
 
 #[derive(Event)]
@@ -226,7 +219,7 @@ pub fn if_jobs_debug(
     job_settings.debug
 }
 
-
+// Stores JobDatas from assets job.toml files
 #[derive(Resource)]
 pub struct JobCatalog {
     pub data: Vec<JobData>
@@ -247,36 +240,30 @@ impl JobCatalog {
                 return job.clone();
             }
         }
-        panic!("Missing job id in the catalog: {}", id);
+        panic!(" [JOBS] Missing job id in the catalog: {}", id);
     }
     pub fn assign(
         &self, 
         commands:   &mut Commands, 
+        entity:     Entity,
         job_id:     JobID, 
-        entity:     Entity, 
-        job_index:  &JobIndex,
-        jobs:       &mut ResMut<Jobs>
     ){
-        jobs.remove_all_clean(commands, &entity, job_index);
+        commands.entity(entity).remove::<Job>();
         let jobdata = self.get(job_id);
-        let new_index = jobs.get_new_index();
-        let mut job = Job::new(new_index, jobdata.clone());
-        commands.entity(entity).insert(JobIndex(new_index));
-
+        let mut job = Job::new(jobdata.clone());
         job.set_active();
-        jobs.add(job);
+        commands.entity(entity).insert(job);
         let first_task = jobdata.tasks.get_current();
-        first_task.task.insert_task(commands, &entity);
+        first_task.task.insert(commands, &entity);
     }
 
     pub fn start(
         &self, 
         commands: &mut Commands, 
-        job_id: JobID, 
-        jobs: &mut ResMut<Jobs>
+        job_id: JobID
     ) -> Entity {
         let jobdata = self.get(job_id);
-        let job_entity = jobdata.start(commands, jobs);
+        let job_entity = jobdata.start(commands);
         return job_entity;
     }
 }
@@ -407,7 +394,6 @@ impl JobSchedule {
 fn trigger_jobs_calendar(
     mut commands:         Commands,
     calendar:             Res<Calendar>,
-    mut jobs:             ResMut<Jobs>,
     job_scheduler:        Res<JobScheduler>,
     job_catalog:          Res<JobCatalog>
 ){
@@ -421,7 +407,7 @@ fn trigger_jobs_calendar(
         match &job_trigger.schedule {
             JobSchedule::Cron(cron) => {
                 if cron.is_time(&calendar){
-                    job_catalog.start(&mut commands, job_trigger.job_id, &mut jobs);
+                    job_catalog.start(&mut commands, job_trigger.job_id);
                 }
              }
             _=> {}
@@ -433,7 +419,6 @@ fn trigger_jobs_calendar(
 // Updates jobs on real time
 fn trigger_jobs_time(
     mut commands:         Commands,
-    mut jobs:             ResMut<Jobs>,
     job_scheduler:        Res<JobScheduler>,
     job_catalog:          Res<JobCatalog>
 ){
@@ -445,7 +430,7 @@ fn trigger_jobs_time(
 
         match &job_trigger.schedule {
             JobSchedule::Instant => {
-                job_catalog.start(&mut commands, job_trigger.job_id, &mut jobs);
+                job_catalog.start(&mut commands, job_trigger.job_id);
             }
             _=> {}
         }
@@ -455,26 +440,23 @@ fn trigger_jobs_time(
 
 fn stop_job(
     mut commands:       Commands,
-    mut jobs:           ResMut<Jobs>,
     mut stop_job:       EventReader<StopJobEvent>
 ){
     for ev in stop_job.read(){
-        info!(" [JOBS] Removing all jobs for entity: {:?}", ev.entity);
-        jobs.remove_all_clean(&mut commands, &ev.entity, &ev.job_index);
+        info!(" [JOBS] Removing job from entity: {:?}", ev.entity);
+        commands.entity(ev.entity).remove::<Job>();
     }
 
 }
 
 fn start_job(
     mut commands:       Commands,
-    mut jobs:           ResMut<Jobs>,
     jobs_catalog:       Res<JobCatalog>,
     mut start_job:      EventReader<StartJobEvent>
 ){
     for ev in start_job.read(){
         info!(" [JOBS] Adding job {} to entity {:?}", ev.job_id, ev.entity);
-        let job_index = JobIndex(jobs.get_new_index());
-        jobs_catalog.assign(&mut commands, ev.job_id, ev.entity, &job_index, &mut jobs);
+        jobs_catalog.assign(&mut commands, ev.entity, ev.job_id);
     }
 }
 

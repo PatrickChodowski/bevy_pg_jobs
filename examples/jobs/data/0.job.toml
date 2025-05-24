@@ -7,10 +7,8 @@ label="CustomerGroup"
 tasks.current_task_id = 0
 
 [tasks.data.0]
-id = 0
 next = 1000
 task = {type = "SpawnGroup", data=["WalkInCustomer", "WalkInCustomer"]} # list of different job ids to spawn
 
 [tasks.data.1000]
-id = 1000
 task = {type = "DespawnTask"}
