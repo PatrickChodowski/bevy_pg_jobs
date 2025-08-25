@@ -73,7 +73,7 @@ impl Plugin for PGJobsPlugin {
                 TaskSets::Simple, 
                 TaskSets::Decision,
                 TaskSets::Loop
-            ).chain()
+            ).chain().run_if(if_jobs_active)
         )
 
         .add_plugins(JsonAssetPlugin::<JobData>::new(&["job.json"]))
