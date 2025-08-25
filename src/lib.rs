@@ -6,7 +6,7 @@ mod types;
 pub mod prelude {
     pub use crate::types::{Job, JobData, JobID, JobTasks, Task, PGTask};
     pub use crate::jobs::{PGJobsPlugin, JobSettings, JobScheduler, JobSchedule,
-        StopJobEvent, StartJobEvent, JobCatalog, JobPaused, TaskSets}; 
+        StopJobEvent, StartJobEvent, JobCatalog, JobPaused, TaskSets, if_jobs_active}; 
 
     pub use crate::common::*;
 
