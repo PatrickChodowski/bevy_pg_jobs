@@ -5,31 +5,20 @@ edition = "2021"
 description = "PG (PatchGames) Jobs-AI to be used with Bevy"
 license = "MIT OR Apache-2.0"
 
+[features]
+default = []
+observe_debug = []
+
 [dependencies]
-bevy = { version = "0.16.0", default-features = false, features = [
-    "animation",
+bevy = {version = "0.16", default-features = false, features = [
     "bevy_asset",
     "bevy_log",
-    "bevy_gilrs",
-    "bevy_scene",
-    "bevy_winit",
-    "bevy_core_pipeline",
-    "bevy_pbr",
-    "bevy_gltf",
     "bevy_render",
-    "bevy_sprite",
-    "bevy_text",
-    "bevy_ui",
-    "multi_threaded",
-    "png",
-    "hdr",
-    "x11",
-    "bevy_gizmos",
-    "tonemapping_luts",
-    "default_font",
-    "webgl2",
-    "bevy_debug_stepping",
-] }
+    "bevy_window",
+    "bevy_scene", # for examples
+    "bevy_sprite", # for examples
+    # "bevy_pbr" # for examples
+]}
 serde = "1.0"
 serde_json = "1.0"
 libm = "0.2.11"

@@ -104,10 +104,33 @@ impl Plugin for PGJobsPlugin {
                 stop_job.run_if(on_event::<StopJobEvent>), 
                 start_job.run_if(on_event::<StartJobEvent>)
             ).chain()
-        )
+        );
+
+        #[cfg(feature="observe_debug")]
+        app
+        .add_observer(observe_add_job)
+        .add_observer(observe_replace_job)
+        .add_observer(observe_remove_job)
         ;
     }
 }
+
+#[cfg(feature="observe_debug")]
+fn observe_add_job(trigger: Trigger<OnAdd, Job>){
+    info!("Added Job to {}", trigger.target());
+}
+
+#[cfg(feature="observe_debug")]
+fn observe_replace_job(trigger: Trigger<OnReplace, Job>){
+    info!("Replaced Job on {}", trigger.target());
+}
+
+#[cfg(feature="observe_debug")]
+fn observe_remove_job(trigger: Trigger<OnRemove, Job>){
+    info!("Removed Job from {}", trigger.target());
+}
+
+
 
 
 #[derive(Event)]
