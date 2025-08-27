@@ -6,7 +6,7 @@ description = "PG (PatchGames) Jobs-AI to be used with Bevy"
 license = "MIT OR Apache-2.0"
 
 [features]
-default = []
+default = ["observe_debug"]
 observe_debug = []
 
 [dependencies]

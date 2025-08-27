@@ -116,18 +116,27 @@ impl Plugin for PGJobsPlugin {
 }
 
 #[cfg(feature="observe_debug")]
-fn observe_add_job(trigger: Trigger<OnAdd, Job>){
-    info!("Added Job to {}", trigger.target());
+fn observe_add_job(
+    trigger: Trigger<OnAdd, Job>,
+    jobs: Query<&Job>
+){
+    info!("Added Job {} to {}", jobs.get(trigger.target()).unwrap().label(), trigger.target());
 }
 
 #[cfg(feature="observe_debug")]
-fn observe_replace_job(trigger: Trigger<OnReplace, Job>){
-    info!("Replaced Job on {}", trigger.target());
+fn observe_replace_job(
+    trigger: Trigger<OnReplace, Job>,
+    jobs: Query<&Job>
+){
+    info!("Replaced old Job to {} on {}",  jobs.get(trigger.target()).unwrap().label(), trigger.target());
 }
 
 #[cfg(feature="observe_debug")]
-fn observe_remove_job(trigger: Trigger<OnRemove, Job>){
-    info!("Removed Job from {}", trigger.target());
+fn observe_remove_job(
+    trigger: Trigger<OnRemove, Job>,
+    jobs: Query<&Job>
+){
+    info!("Removed Job {} from {}", jobs.get(trigger.target()).unwrap().label(), trigger.target());
 }
 
 

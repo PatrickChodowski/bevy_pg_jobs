@@ -407,6 +407,10 @@ impl Job {
         
     }
 
+    pub fn label(&self) -> &str {
+        &self.data.label
+    }
+
 }
 
 impl GetTypeRegistration for Box<dyn PGTask> {
