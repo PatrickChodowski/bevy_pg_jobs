@@ -81,7 +81,7 @@ impl JobTasks {
 
     pub fn first(
         &mut self, 
-        task: Box<dyn PGTask>, 
+        task: Box<dyn PGTask>,
         next: Option<u32>
     ){
         let t: Task = Task{

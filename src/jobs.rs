@@ -30,6 +30,10 @@ pub enum TaskSets {
     Decision
 }
 
+#[derive(Debug, Hash, PartialEq, Eq, Clone, SystemSet)]
+pub struct PGJobsSet;
+
+
 pub struct PGJobsPlugin {
     pub active: bool,
     pub debug:  bool
@@ -66,14 +70,16 @@ impl Plugin for PGJobsPlugin {
         .register_type::<LoopTask>()
         .register_type::<TeleportTask>()
 
+
+        .configure_sets(Update, PGJobsSet.run_if(if_jobs_active))
         .configure_sets(
             Update, (
                 TaskSets::Dispatch, 
-                TaskSets::Extension, 
+                TaskSets::Extension,
+                TaskSets::Decision, 
                 TaskSets::Simple, 
-                TaskSets::Decision,
                 TaskSets::Loop
-            ).chain().run_if(if_jobs_active)
+            ).chain().in_set(PGJobsSet)
         )
 
         .add_plugins(JsonAssetPlugin::<JobData>::new(&["job.json"]))
