@@ -1,13 +1,13 @@
 [package]
 name = "bevy_pg_jobs"
-version = "1.16.2"
+version = "1.16.3"
 edition = "2021"
 description = "PG (PatchGames) Jobs-AI to be used with Bevy"
 license = "MIT OR Apache-2.0"
 
 [features]
 default = []
-debug = []
+verbose = []
 
 [dependencies]
 bevy = {version = "0.16", default-features = false, features = [

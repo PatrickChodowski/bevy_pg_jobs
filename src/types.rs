@@ -237,7 +237,7 @@ impl JobData {
         commands:  &mut Commands, 
         entity:    Entity
     ) {
-        #[cfg(feature="debug")]
+        #[cfg(feature="verbose")]
         info!(" [JOBS] Assign JobData {} to {}", self.label, entity);
 
         let mut job = Job::new(self.clone());
@@ -300,7 +300,7 @@ impl Job {
         commands:  &mut Commands, 
         entity:    Entity
     ) {
-        #[cfg(feature="debug")]
+        #[cfg(feature="verbose")]
         info!(" [JOBS] Assign job {} to {}", self.data.label, entity);
 
         self.set_active();
