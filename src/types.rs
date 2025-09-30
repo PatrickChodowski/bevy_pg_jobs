@@ -237,7 +237,9 @@ impl JobData {
         commands:  &mut Commands, 
         entity:    Entity
     ) {
+        #[cfg(feature="debug")]
         info!(" [JOBS] Assign JobData {} to {}", self.label, entity);
+
         let mut job = Job::new(self.clone());
         job.set_active();
         commands.entity(entity).insert(job);
@@ -298,7 +300,9 @@ impl Job {
         commands:  &mut Commands, 
         entity:    Entity
     ) {
+        #[cfg(feature="debug")]
         info!(" [JOBS] Assign job {} to {}", self.data.label, entity);
+
         self.set_active();
         commands.entity(entity).insert(self.clone());
         let first_task = self.data.tasks.get_current();

@@ -112,16 +112,18 @@ impl Plugin for PGJobsPlugin {
             ).chain()
         );
 
-        #[cfg(feature="observe_debug")]
-        app
-        .add_observer(observe_add_job)
-        .add_observer(observe_replace_job)
-        .add_observer(observe_remove_job)
-        ;
+        #[cfg(feature="debug")]
+        app.add_observer(observe_add_job);
+
+        #[cfg(feature="debug")]
+        app.add_observer(observe_replace_job);
+
+        #[cfg(feature="debug")]
+        app.add_observer(observe_remove_job);
     }
 }
 
-#[cfg(feature="observe_debug")]
+#[cfg(feature="debug")]
 fn observe_add_job(
     trigger: Trigger<OnAdd, Job>,
     jobs: Query<&Job>
@@ -129,7 +131,7 @@ fn observe_add_job(
     info!("Added Job {} to {}", jobs.get(trigger.target()).unwrap().label(), trigger.target());
 }
 
-#[cfg(feature="observe_debug")]
+#[cfg(feature="debug")]
 fn observe_replace_job(
     trigger: Trigger<OnReplace, Job>,
     jobs: Query<&Job>
@@ -137,7 +139,7 @@ fn observe_replace_job(
     info!("Replaced old Job to {} on {}",  jobs.get(trigger.target()).unwrap().label(), trigger.target());
 }
 
-#[cfg(feature="observe_debug")]
+#[cfg(feature="debug")]
 fn observe_remove_job(
     trigger: Trigger<OnRemove, Job>,
     jobs: Query<&Job>
@@ -490,7 +492,9 @@ fn start_job(
     mut start_job:      EventReader<StartJobEvent>
 ){
     for ev in start_job.read(){
+        #[cfg(feature="debug")]
         info!(" [JOBS] Adding job {} to entity {:?}", ev.job_id, ev.entity);
+
         jobs_catalog.assign(&mut commands, ev.entity, ev.job_id);
     }
 }
