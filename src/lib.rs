@@ -1,5 +1,7 @@
 
+#[cfg(feature="common")]
 mod common;
+
 mod jobs;
 mod types;
 
@@ -8,6 +10,7 @@ pub mod prelude {
     pub use crate::jobs::{PGJobsPlugin, JobSettings, JobScheduler, JobSchedule,
         StopJobEvent, StartJobEvent, JobCatalog, JobPaused, TaskSets, PGJobsSet, if_jobs_active}; 
 
+    #[cfg(feature="common")]
     pub use crate::common::*;
 
 }

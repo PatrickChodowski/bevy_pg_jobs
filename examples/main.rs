@@ -11,6 +11,8 @@ use std::io::Write;
 use bevy::tasks::IoTaskPool;
 use bevy::render::view::VisibilityClass;
 
+use crate::common::*;
+
 fn main() {
     App::new()
         .add_plugins((

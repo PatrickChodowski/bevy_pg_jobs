@@ -9,6 +9,23 @@ use crate::prelude::{PGTask, Job, JobSchedule};
 use pg_jobs_macros::PGTask;
 
 
+pub struct PGJobsCommonPlugin;
+
+impl Plugin for PGJobsCommonPlugin {
+    fn build(&self, app: &mut App) {
+        app
+        .register_type::<DespawnTask>()
+        .register_type::<HideTask>()
+        .register_type::<ShowTask>()
+        .register_type::<RandomWaitTask>()
+        .register_type::<WaitTask>()
+        .register_type::<LoopTask>()
+        .register_type::<TeleportTask>()
+        ;
+    }
+}
+
+
 #[derive(Component, Clone, Copy, Debug, Reflect, Serialize, Deserialize, PGTask)]
 #[component(storage = "SparseSet")]
 #[reflect(Component, Serialize, Deserialize)]

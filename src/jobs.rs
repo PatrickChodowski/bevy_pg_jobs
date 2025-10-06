@@ -16,9 +16,6 @@ use bevy_pg_calendar::prelude::{Calendar, CalendarNewHourEvent, Cron};
 use serde::{Deserialize, Serialize};
 use std::hash::Hash;
 
-use crate::common::{
-    DespawnTask, LoopTask, HideTask, ShowTask, TeleportTask, WaitTask, RandomWaitTask
-};
 use super::types::{PGTask, JobTasks, JobData, Job, JobID};
 
 #[derive(Debug, Hash, PartialEq, Eq, Clone, SystemSet)]
@@ -61,15 +58,6 @@ impl Plugin for PGJobsPlugin {
 
         .register_type_data::<Box<dyn PGTask>, ReflectSerialize>()
         .register_type_data::<Box<dyn PGTask>, ReflectDeserialize>()
-
-        .register_type::<DespawnTask>()
-        .register_type::<HideTask>()
-        .register_type::<ShowTask>()
-        .register_type::<RandomWaitTask>()
-        .register_type::<WaitTask>()
-        .register_type::<LoopTask>()
-        .register_type::<TeleportTask>()
-
 
         .configure_sets(Update, PGJobsSet.run_if(if_jobs_active))
         .configure_sets(
@@ -480,6 +468,7 @@ fn stop_job(
     mut stop_job:       EventReader<StopJobEvent>
 ){
     for ev in stop_job.read(){
+        #[cfg(feature="verbose")]
         info!(" [JOBS] Removing job from entity: {:?}", ev.entity);
         commands.entity(ev.entity).remove::<Job>();
     }
