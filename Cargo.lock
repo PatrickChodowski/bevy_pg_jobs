@@ -684,7 +684,7 @@ dependencies = [
 
 [[package]]
 name = "bevy_pg_jobs"
-version = "1.16.4"
+version = "1.16.5"
 dependencies = [
  "bevy",
  "bevy_common_assets",

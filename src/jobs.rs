@@ -256,13 +256,14 @@ impl JobCatalog {
     pub fn clear(&mut self){
         self.data.clear();
     } 
-    pub fn get(&self, id: JobID) -> JobData {
+    pub fn get(&self, id: JobID) -> Option<JobData> {
         for job in self.data.iter() {
             if job.id == id {
-                return job.clone();
+                return Some(job.clone());
             }
         }
-        panic!(" [JOBS] Missing job id in the catalog: {}", id);
+        error!(" [JOBS] Missing job id in the catalog: {}", id);
+        return None;
     }
     pub fn assign(
         &self, 
@@ -271,22 +272,32 @@ impl JobCatalog {
         job_id:     JobID, 
     ){
         commands.entity(entity).remove::<Job>();
-        let jobdata = self.get(job_id);
-        let mut job = Job::new(jobdata.clone());
-        job.set_active();
-        commands.entity(entity).insert(job);
-        let first_task = jobdata.tasks.get_current();
-        first_task.task.insert(commands, &entity);
+        if let Some(jobdata) = self.get(job_id){
+            let mut job = Job::new(jobdata.clone());
+            job.set_active();
+            commands.entity(entity).insert(job);
+            if let Some(first_task) = jobdata.tasks.get_current(){
+                first_task.task.insert(commands, &entity);
+            } else {
+                error!("Could not start first task for entity: {}", entity);
+            }
+        } else {
+            error!("Could not assign job: {} to entity: {}", job_id, entity);
+        }
+
     }
 
     pub fn start(
         &self, 
         commands: &mut Commands, 
         job_id: JobID
-    ) -> Entity {
-        let jobdata = self.get(job_id);
-        let job_entity = jobdata.start(commands);
-        return job_entity;
+    ) -> Option<Entity> {
+        if let Some(jobdata) = self.get(job_id){
+            if let Some(job_entity) = jobdata.start(commands){
+                return Some(job_entity);
+            }
+        }
+        return None;
     }
 }
 
@@ -331,13 +342,14 @@ impl JobScheduler {
     pub fn clear(&mut self){
         self.data.clear();
     } 
-    pub fn get(&self, trigger_id: u32) -> JobTrigger {
+    pub fn get(&self, trigger_id: u32) -> Option<JobTrigger> {
         for jobtrigger in self.data.iter() {
             if jobtrigger.trigger_id == trigger_id {
-                return jobtrigger.clone();
+                return Some(jobtrigger.clone());
             }
         }
-        panic!("Missing job trigger id in the scheduler: {}", trigger_id);
+        error!("Missing job trigger id in the scheduler: {}", trigger_id);
+        return None;
     }
     pub fn deactivate_all(&mut self){
         info!(" [JOBS DEBUG] Deactivate all triggers");

@@ -142,19 +142,20 @@ impl JobTasks {
         info!(" [Tasks]: Starting job for entity: {:?}", job_entity);
         return job_entity;
     }
-    pub fn set_task(&mut self, next_task_id: u32) -> &Task {
+    pub fn set_task(&mut self, next_task_id: u32) -> Option<&Task> {
         self.current_task_id = next_task_id;
         return self.get_current();
     }
-    pub fn next_task(&mut self) -> &Task {
+    pub fn next_task(&mut self) -> Option<&Task> {
         self.current_task_id = self.get_next_id();
         return self.get_current();
     }
-    pub fn get_current(&self) -> &Task {
+    pub fn get_current(&self) -> Option<&Task> {
         if let Some(task) = self.data.get(&self.current_task_id) {
-            return task;
+            return Some(task);
         } else {
-            panic!("[JOBS] get current missing: {} ", self.current_task_id);
+            error!("[JOBS] get current missing: {} ", self.current_task_id);
+            return None;
         }
     }
 }
@@ -244,21 +245,27 @@ impl JobData {
         job.set_active();
         commands.entity(entity).insert(job);
 
-        let first_task = self.tasks.get_current();
-        first_task.task.insert(commands, &entity);
+        if let Some(first_task) = self.tasks.get_current(){
+            first_task.task.insert(commands, &entity);
+        } else {
+            error!("Could not assign task to {}", entity);
+        }
     }
 
     pub fn start(
         &self, 
         commands: &mut Commands
-    ) -> Entity{ 
+    ) -> Option<Entity>{ 
         info!(" [JOBS] Starting JobData {}", self.label);
-        let first_task = self.tasks.get_current();
-        let job_entity = first_task.task.spawn(commands);
-        let mut job = Job::new(self.clone());
-        job.set_active();
-        commands.entity(job_entity).insert(job);
-        return job_entity;
+        if let Some(first_task) = self.tasks.get_current(){
+            let job_entity = first_task.task.spawn(commands);
+            let mut job = Job::new(self.clone());
+            job.set_active();
+            commands.entity(job_entity).insert(job);
+            return Some(job_entity);
+        } else {
+            return None;
+        }
     }
 }
 
@@ -305,26 +312,34 @@ impl Job {
 
         self.set_active();
         commands.entity(entity).insert(self.clone());
-        let first_task = self.data.tasks.get_current();
-        first_task.task.insert(commands, &entity);
+        if let Some(first_task) = self.data.tasks.get_current(){
+            first_task.task.insert(commands, &entity);
+        } else {
+            error!("Could not assign first task to entity: {}", entity);
+        }
     }
 
     pub fn start(
         &mut self, 
         commands: &mut Commands
-    ) -> Entity{ 
+    ) -> Option<Entity>{ 
         info!(" [JOBS] Starting job {}", self.data.label);
         self.set_active();
-        let first_task = self.data.tasks.get_current();
-        let job_entity = first_task.task.spawn(commands);
-        commands.entity(job_entity).insert(self.clone());
-        return job_entity;
+        if let Some(first_task) = self.data.tasks.get_current(){
+            let job_entity = first_task.task.spawn(commands);
+            commands.entity(job_entity).insert(self.clone());
+            return Some(job_entity);
+        } else {
+            error!("Could not start job {}", self.data.label);
+            return None;
+        }
+
     }
 
 
     pub fn current_task(
         &self
-    ) -> &Task {
+    ) -> Option<&Task> {
         return self.data.tasks.get_current();
     }
 
@@ -333,7 +348,9 @@ impl Job {
         commands:    &mut Commands, 
         task_entity: &Entity
     ){
-        self.current_task().task.remove(commands, task_entity);
+        if let Some(task) = self.current_task(){
+            task.task.remove(commands, task_entity);
+        }
     }
 
     pub fn fail_task(
@@ -342,8 +359,9 @@ impl Job {
         task_entity: &Entity
     ) {
         self.remove_current(commands, task_entity);
-        let next_task = self.data.tasks.set_task(self.data.fail_task_id);
-        next_task.task.insert(commands, task_entity);
+        if let Some(next_task) = self.data.tasks.set_task(self.data.fail_task_id){
+            next_task.task.insert(commands, task_entity);
+        }
     }
 
     pub fn next_task(
@@ -352,8 +370,9 @@ impl Job {
         task_entity: &Entity
     ) {
         self.remove_current(commands, task_entity);
-        let next_task = self.data.tasks.next_task();
-        next_task.task.insert(commands, task_entity);
+        if let Some(next_task) = self.data.tasks.next_task(){
+            next_task.task.insert(commands, task_entity);
+        }
     }
 
     pub fn jump_task(
@@ -363,8 +382,9 @@ impl Job {
         next_task_id: u32
     ) {
         self.remove_current(commands, task_entity);
-        let next_task = self.data.tasks.set_task(next_task_id);
-        next_task.task.insert(commands, task_entity);
+        if let Some(next_task) = self.data.tasks.set_task(next_task_id){
+            next_task.task.insert(commands, task_entity);
+        }
     }
 
     pub fn loop_reset(&mut self){
