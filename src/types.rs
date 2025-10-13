@@ -364,6 +364,15 @@ impl Job {
         }
     }
 
+    pub fn cancel(
+        &mut self, 
+        commands:    &mut Commands, 
+        task_entity: &Entity
+    ) {
+        self.remove_current(commands, task_entity);
+        commands.entity(*task_entity).remove::<Job>();
+    }
+
     pub fn next_task(
         &mut self, 
         commands:    &mut Commands, 
