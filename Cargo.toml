@@ -1,6 +1,6 @@
 [package]
 name = "bevy_pg_jobs"
-version = "1.16.6"
+version = "1.17.0"
 edition = "2021"
 description = "PG (PatchGames) Jobs-AI to be used with Bevy"
 license = "MIT OR Apache-2.0"
@@ -11,7 +11,7 @@ verbose = []
 common = []
 
 [dependencies]
-bevy = {version = "0.16", default-features = false, features = [
+bevy = {version = "0.17", default-features = false, features = [
     "bevy_asset",
     "bevy_log",
     "bevy_render",
@@ -21,9 +21,9 @@ serde = "1.0"
 serde_json = "1.0"
 libm = "0.2.11"
 chrono = {version = "0.4.40", default-features = false, features = ["serde"]}
-bevy_pg_calendar = {git = "https://www.github.com/PatrickChodowski/bevy_pg_calendar"}
+bevy_pg_calendar = {version="1.17.0", git = "https://www.github.com/PatrickChodowski/bevy_pg_calendar"}
 rand = "0.9.0"
-bevy_common_assets = {version = "0.13.0", default-features = false, features = ["json", "toml"]}
+bevy_common_assets = {version = "0.14.0", default-features = false, features = ["json", "toml"]}
 pg_jobs_macros = {path="./pg_jobs_macros"}
 dyn-clone = "1.0.19"
 typetag = "0.2.20"

@@ -1,10 +1,10 @@
 use bevy::prelude::*;
 use bevy::app::{App, Plugin, PreUpdate, Update, Startup};
 use bevy::asset::{Asset, AssetServer, Assets, LoadedFolder, Handle};
-use bevy::ecs::schedule::common_conditions::on_event;
+use bevy::ecs::schedule::common_conditions::on_message;
 use bevy::ecs::schedule::IntoScheduleConfigs;
 use bevy::ecs::entity::Entity;
-use bevy::ecs::event::{Event, EventReader};
+use bevy::ecs::message::{Message, MessageReader};
 use bevy::ecs::reflect::ReflectComponent;
 use bevy::ecs::component::Component;
 use bevy::ecs::system::{Commands, Local, Res, ResMut};
@@ -47,14 +47,14 @@ impl Default for PGJobsPlugin {
 impl Plugin for PGJobsPlugin {
     fn build(&self, app: &mut App) {
         app
-        .register_type::<Job>()
-        .register_type::<JobID>()
-        .register_type::<JobData>()
-        .register_type::<JobTasks>()
-        .register_type::<JobStatus>()
-        .register_type::<JobSchedule>()
-        .register_type::<JobDebug>()
-        .register_type::<JobPaused>()
+        // .register_type::<Job>()
+        // .register_type::<JobID>()
+        // .register_type::<JobData>()
+        // .register_type::<JobTasks>()
+        // .register_type::<JobStatus>()
+        // .register_type::<JobSchedule>()
+        // .register_type::<JobDebug>()
+        // .register_type::<JobPaused>()
 
         .register_type_data::<Box<dyn PGTask>, ReflectSerialize>()
         .register_type_data::<Box<dyn PGTask>, ReflectDeserialize>()
@@ -81,22 +81,19 @@ impl Plugin for PGJobsPlugin {
         .insert_resource(JobCatalog::init())
         .insert_resource(JobScheduler::init())
 
-        .add_event::<StopJobEvent>()
-        .add_event::<StartJobEvent>()
-
         .add_systems(Startup,   init)
         .add_systems(Update,    track.run_if(resource_exists::<LoadedJobDataHandles>
                                      .and(resource_exists::<LoadedJobTriggerHandles>)))
 
         .add_systems(PreUpdate, (
-                trigger_jobs_calendar.run_if(on_event::<CalendarNewHourEvent>), 
+                trigger_jobs_calendar.run_if(on_message::<CalendarNewHourEvent>), 
                 trigger_jobs_time
             ).chain().run_if(if_jobs_active)
         )
 
         .add_systems(PreUpdate, (
-                stop_job.run_if(on_event::<StopJobEvent>), 
-                start_job.run_if(on_event::<StartJobEvent>)
+                stop_job.run_if(on_message::<StopJobEvent>), 
+                start_job.run_if(on_message::<StartJobEvent>)
             ).chain()
         );
 
@@ -138,12 +135,12 @@ fn observe_remove_job(
 
 
 
-#[derive(Event)]
+#[derive(Message)]
 pub struct StopJobEvent {
     pub entity:     Entity
 }
 
-#[derive(Event)]
+#[derive(Message)]
 pub struct StartJobEvent {
     pub job_id: JobID,
     pub entity: Entity
@@ -477,7 +474,7 @@ fn trigger_jobs_time(
 
 fn stop_job(
     mut commands:       Commands,
-    mut stop_job:       EventReader<StopJobEvent>
+    mut stop_job:       MessageReader<StopJobEvent>
 ){
     for ev in stop_job.read(){
         #[cfg(feature="verbose")]
@@ -490,7 +487,7 @@ fn stop_job(
 fn start_job(
     mut commands:       Commands,
     jobs_catalog:       Res<JobCatalog>,
-    mut start_job:      EventReader<StartJobEvent>
+    mut start_job:      MessageReader<StartJobEvent>
 ){
     for ev in start_job.read(){
         #[cfg(feature="verbose")]
