@@ -29,7 +29,7 @@ dyn-clone = "1.0.20"
 typetag = "0.2.21"
 
 [dev-dependencies]
-bevy = {version = "0.16", default-features = false, features = [
+bevy = {version = "0.17", default-features = false, features = [
     "bevy_asset",
     "bevy_log",
     "bevy_render",

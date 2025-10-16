@@ -9,9 +9,8 @@ use std::sync::RwLockReadGuard;
 use std::fs::File;
 use std::io::Write;
 use bevy::tasks::IoTaskPool;
-use bevy::render::view::VisibilityClass;
 
-use crate::common::*;
+use bevy_pg_jobs::common::*;
 
 fn main() {
     App::new()
@@ -119,7 +118,6 @@ fn save(
         .deny_all_resources()
         .deny_component::<Mesh2d>()
         .deny_component::<MeshMaterial2d<ColorMaterial>>()
-        .deny_component::<VisibilityClass>()
         .deny_component::<TransformTreeChanged>()
         .extract_entities(query.iter(&world))
         .extract_resources()
