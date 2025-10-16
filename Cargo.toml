@@ -1,7 +1,7 @@
 [package]
 name = "bevy_pg_jobs"
 version = "1.17.0"
-edition = "2021"
+edition = "2024"
 description = "PG (PatchGames) Jobs-AI to be used with Bevy"
 license = "MIT OR Apache-2.0"
 

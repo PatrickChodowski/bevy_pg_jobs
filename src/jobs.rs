@@ -47,17 +47,20 @@ impl Default for PGJobsPlugin {
 impl Plugin for PGJobsPlugin {
     fn build(&self, app: &mut App) {
         app
-        // .register_type::<Job>()
-        // .register_type::<JobID>()
-        // .register_type::<JobData>()
-        // .register_type::<JobTasks>()
-        // .register_type::<JobStatus>()
-        // .register_type::<JobSchedule>()
-        // .register_type::<JobDebug>()
-        // .register_type::<JobPaused>()
+        .register_type::<Job>()
+        .register_type::<JobID>()
+        .register_type::<JobData>()
+        .register_type::<JobTasks>()
+        .register_type::<JobStatus>()
+        .register_type::<JobSchedule>()
+        .register_type::<JobDebug>()
+        .register_type::<JobPaused>()
 
         .register_type_data::<Box<dyn PGTask>, ReflectSerialize>()
         .register_type_data::<Box<dyn PGTask>, ReflectDeserialize>()
+
+        .add_message::<StopJobEvent>()
+        .add_message::<StartJobEvent>()
 
         .configure_sets(Update, PGJobsSet.run_if(if_jobs_active))
         .configure_sets(
@@ -418,7 +421,7 @@ pub enum JobSchedule {
 impl JobSchedule {
     pub fn parse(&mut self) {
         match self {
-            JobSchedule::Cron(ref mut cron) => {cron.parse()}
+            JobSchedule::Cron(cron) => {cron.parse()}
             _ => {}
         }
     }
