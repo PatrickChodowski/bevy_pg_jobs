@@ -326,7 +326,7 @@ impl Job {
         &mut self, 
         commands: &mut Commands
     ) -> Option<Entity>{ 
-        #[]
+        #[cfg(feature="verbose")]
         info!(" [JOBS] Starting job {}", self.data.label);
         self.set_active();
         if let Some(first_task) = self.data.tasks.get_current(){
