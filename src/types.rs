@@ -365,6 +365,8 @@ impl Job {
         self.remove_current(commands, task_entity);
         if let Some(next_task) = self.data.tasks.set_task(self.data.fail_task_id){
             next_task.task.insert(commands, task_entity);
+        } else {
+            commands.entity(*task_entity).remove::<Job>();
         }
     }
 
@@ -385,6 +387,8 @@ impl Job {
         self.remove_current(commands, task_entity);
         if let Some(next_task) = self.data.tasks.next_task(){
             next_task.task.insert(commands, task_entity);
+        } else {
+            commands.entity(*task_entity).remove::<Job>();
         }
     }
 
