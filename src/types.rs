@@ -139,6 +139,7 @@ impl JobTasks {
     pub fn start(&mut self, commands: &mut Commands, job_entity: Entity) -> Entity {
         let current_task = &self.data.get(&self.current_task_id).unwrap();
         current_task.task.insert(commands, &job_entity);
+        #[cfg(feature="verbose")]
         info!(" [Tasks]: Starting job for entity: {:?}", job_entity);
         return job_entity;
     }
@@ -218,6 +219,7 @@ impl<'de> Deserialize<'de> for JobID {
         let mut s = DefaultHasher::new();
         string_job_id.hash(&mut s);
         let hashed_id = JobID(s.finish() as u32);
+        #[cfg(feature="verbose")]
         info!(" [JOBS] Job String: {} Hashed ID: {}", string_job_id, hashed_id);
         return Ok(hashed_id);
     }
@@ -256,6 +258,7 @@ impl JobData {
         &self, 
         commands: &mut Commands
     ) -> Option<Entity>{ 
+        #[cfg(feature="verbose")]
         info!(" [JOBS] Starting JobData {}", self.label);
         if let Some(first_task) = self.tasks.get_current(){
             let job_entity = first_task.task.spawn(commands);
@@ -323,6 +326,7 @@ impl Job {
         &mut self, 
         commands: &mut Commands
     ) -> Option<Entity>{ 
+        #[]
         info!(" [JOBS] Starting job {}", self.data.label);
         self.set_active();
         if let Some(first_task) = self.data.tasks.get_current(){

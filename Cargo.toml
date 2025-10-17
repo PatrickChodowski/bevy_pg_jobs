@@ -16,7 +16,7 @@ bevy = {version = "0.17", default-features = false, features = [
     "bevy_log",
     "bevy_render",
     "bevy_window",
-    "reflect_auto_register"
+    # "reflect_auto_register" // for later
 ]}
 serde = "1.0"
 serde_json = "1.0"
