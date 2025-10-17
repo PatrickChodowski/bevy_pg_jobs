@@ -155,7 +155,8 @@ impl JobTasks {
         if let Some(task) = self.data.get(&self.current_task_id) {
             return Some(task);
         } else {
-            error!("[JOBS] get current missing: {} ", self.current_task_id);
+            #[cfg(feature="verbose")]
+            warn!("[JOBS] get current missing: {} ", self.current_task_id);
             return None;
         }
     }
@@ -250,7 +251,8 @@ impl JobData {
         if let Some(first_task) = self.tasks.get_current(){
             first_task.task.insert(commands, &entity);
         } else {
-            error!("Could not assign task to {}", entity);
+            #[cfg(feature="verbose")]
+            warn!("Could not assign task to {}", entity);
         }
     }
 
@@ -318,7 +320,8 @@ impl Job {
         if let Some(first_task) = self.data.tasks.get_current(){
             first_task.task.insert(commands, &entity);
         } else {
-            error!("Could not assign first task to entity: {}", entity);
+            #[cfg(feature="verbose")]
+            warn!("Could not assign first task to entity: {}", entity);
         }
     }
 
@@ -334,7 +337,7 @@ impl Job {
             commands.entity(job_entity).insert(self.clone());
             return Some(job_entity);
         } else {
-            error!("Could not start job {}", self.data.label);
+            error!(" [JOBS] Could not start job {}", self.data.label);
             return None;
         }
 
