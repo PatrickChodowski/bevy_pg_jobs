@@ -371,7 +371,7 @@ impl Job {
         }
     }
 
-    pub fn fail_task(
+    pub fn fail(
         &mut self, 
         commands:    &mut Commands, 
         task_entity: &Entity
