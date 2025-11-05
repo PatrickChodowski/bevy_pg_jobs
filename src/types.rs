@@ -89,7 +89,7 @@ impl JobTasks {
     pub fn first(
         &mut self, 
         task: Box<dyn PGTask>
-    ){
+    ) -> &mut Self {
         let t: Task = Task{
             id: 0, 
             next: None,
@@ -97,12 +97,13 @@ impl JobTasks {
         };
         self.data.insert(0, t);
         self.last_added = 0;
+        return self;
     }
 
     pub fn next(
         &mut self, 
         task: Box<dyn PGTask>
-    ){
+    ) -> &mut Self {
         let id = self.next_index();
         let t: Task = Task{
             id, 
@@ -111,13 +112,14 @@ impl JobTasks {
         };
         self.data.insert(id, t);
         self.last_added = id;
+        return self;
     }
 
     pub fn add_at(
         &mut self, 
         id:   u32,
         task: Box<dyn PGTask>
-    ){
+    ) -> &mut Self {
         let t: Task = Task{
             id, 
             next: None,
@@ -125,6 +127,7 @@ impl JobTasks {
         };
         self.data.insert(id, t);
         self.last_added = id;
+        return self;
     }
 
     fn next_index(&self) -> u32 {
