@@ -101,8 +101,8 @@ fn make_job() -> Job {
         JobData{
             id: JobID(0),
             label: "TestJob".to_string(),
-            fail_task_id: 1000,
-            tasks
+            tasks,
+            ..default()
         }
     )
 }

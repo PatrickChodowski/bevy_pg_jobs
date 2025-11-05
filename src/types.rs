@@ -45,7 +45,7 @@ where
     let sjd = SerializeJobData {
         id: jd.label.clone(),
         label: jd.label.clone(),
-        fail_task_id: jd.fail_task_id,
+        on_fail: jd.on_fail,
         tasks: jd.tasks.clone()
     };
 
@@ -57,7 +57,7 @@ where
 struct SerializeJobData {
     id:           String,
     label:        String,
-    fail_task_id: u32,
+    on_fail:      JobOnFail,
     tasks:        JobTasks
 }
 
@@ -226,12 +226,23 @@ impl<'de> Deserialize<'de> for JobID {
     }
 }
 
+#[derive(Clone, Copy, Default, Serialize, Deserialize, Reflect, Debug)]
+pub enum JobOnFail {
+    #[default]
+    Cancel,
+    RunTask(u32),
+    Nothing,
+    Despawn
+}
+
+
+
 /// JobData is read from job.toml files
 #[derive(Asset, Debug, Reflect, Clone, Serialize, Deserialize)]
 pub struct JobData {
     pub id:            JobID,
     pub label:         String,
-    pub fail_task_id:  u32,
+    pub on_fail:       JobOnFail,
     pub tasks:         JobTasks
 }
 
@@ -365,11 +376,21 @@ impl Job {
         commands:    &mut Commands, 
         task_entity: &Entity
     ) {
-        self.remove_current(commands, task_entity);
-        if let Some(next_task) = self.data.tasks.set_task(self.data.fail_task_id){
-            next_task.task.insert(commands, task_entity);
-        } else {
-            commands.entity(*task_entity).remove::<Job>();
+        match self.data.on_fail {
+            JobOnFail::Nothing => {}
+            JobOnFail::Despawn => {
+                commands.entity(*task_entity).despawn();
+            }
+            JobOnFail::Cancel => {
+                self.cancel(commands, task_entity);
+            }
+            JobOnFail::RunTask(task_id) => {
+                if let Some(next_task) = self.data.tasks.set_task(task_id){
+                    next_task.task.insert(commands, task_entity);
+                } else {
+                    self.cancel(commands, task_entity);
+                }
+            }
         }
     }
 
