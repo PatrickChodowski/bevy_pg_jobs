@@ -35,7 +35,8 @@ pub struct Task {
 pub struct JobTasks {
     #[serde(deserialize_with="deserialize_jobtask_data")]    
     pub data: HashMap<u32, Task>,
-    pub current_task_id: u32
+    pub current_task_id: u32,
+    last_added: u32
 }
 
 fn serialize_job_data<S>(jd: &JobData, serializer: S) -> Result<S::Ok, S::Error>
@@ -66,7 +67,8 @@ impl Default for JobTasks {
     fn default() -> Self {
         JobTasks{
             data: HashMap::default(), 
-            current_task_id: 0
+            current_task_id: 0,
+            last_added: 0
         }
     }
 }
@@ -75,49 +77,54 @@ impl JobTasks {
     pub fn new() -> Self {
         JobTasks{
             data: HashMap::default(),
+            last_added: 0,
             current_task_id: 0,
         }
     }
 
+    pub fn with_next(&mut self, next: u32){
+        self.data.get_mut(&self.last_added).unwrap().next = Some(next);
+    }
+
     pub fn first(
         &mut self, 
-        task: Box<dyn PGTask>,
-        next: Option<u32>
+        task: Box<dyn PGTask>
     ){
         let t: Task = Task{
             id: 0, 
-            next,
+            next: None,
             task
         };
         self.data.insert(0, t);
+        self.last_added = 0;
     }
 
     pub fn next(
         &mut self, 
-        task: Box<dyn PGTask>, 
-        next: Option<u32>
+        task: Box<dyn PGTask>
     ){
         let id = self.next_index();
         let t: Task = Task{
             id, 
-            next,
+            next: None,
             task
         };
         self.data.insert(id, t);
+        self.last_added = id;
     }
 
     pub fn add_at(
         &mut self, 
         id:   u32,
-        task: Box<dyn PGTask>, 
-        next: Option<u32>
+        task: Box<dyn PGTask>
     ){
         let t: Task = Task{
             id, 
-            next,
+            next: None,
             task
         };
         self.data.insert(id, t);
+        self.last_added = id;
     }
 
     fn next_index(&self) -> u32 {
