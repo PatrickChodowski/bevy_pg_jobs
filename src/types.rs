@@ -1,14 +1,10 @@
 use bevy::prelude::*;
 use dyn_clone::DynClone;
-use serde::{de::Error, de::Unexpected};
 use std::any::Any;
 use std::fmt::Debug;
 use std::ops::{Deref, DerefMut};
 use bevy::platform::collections::HashMap;
 use bevy::reflect::utility::GenericTypeInfoCell;
-use std::hash::{DefaultHasher, Hash, Hasher};
-use std::fmt;
-use serde::{Deserialize, Serialize, Deserializer, Serializer};
 
 use bevy::reflect::{ApplyError, GetTypeRegistration, ReflectMut, ReflectOwned, ReflectRef, OpaqueInfo, TypeInfo, TypePath, Typed};
 
@@ -23,45 +19,19 @@ pub trait PGTask: Reflect + Any + Send + Sync + DynClone + Debug {
 
 dyn_clone::clone_trait_object!(PGTask);
 
-#[derive(Debug, Reflect, Resource, Clone, Component, Serialize, Deserialize)]
+#[derive(Debug, Reflect, Resource, Clone, Component)]
 pub struct Task {
-    #[serde(skip_deserializing)]
     pub id:     u32,
     pub next:   Option<u32>,
     pub task:   Box<dyn PGTask + 'static>
 }
 
-#[derive(Debug, Reflect, Clone, Serialize, Deserialize)]
+#[derive(Debug, Reflect, Clone)]
 pub struct JobTasks {
-    #[serde(deserialize_with="deserialize_jobtask_data")]    
     pub data: HashMap<u32, Task>,
     pub current_task_id: u32,
     last_added: u32
 }
-
-fn serialize_job_data<S>(jd: &JobData, serializer: S) -> Result<S::Ok, S::Error>
-where
-    S: Serializer
-{
-    let sjd = SerializeJobData {
-        id: jd.label.clone(),
-        label: jd.label.clone(),
-        on_fail: jd.on_fail,
-        tasks: jd.tasks.clone()
-    };
-
-    sjd.serialize(serializer)
-}
-
-
-#[derive(Serialize)]
-struct SerializeJobData {
-    id:           String,
-    label:        String,
-    on_fail:      JobOnFail,
-    tasks:        JobTasks
-}
-
 
 impl Default for JobTasks {
     fn default() -> Self {
@@ -186,71 +156,7 @@ impl JobTasks {
     }
 }
 
-
-fn deserialize_jobtask_data<'de, D>(deserializer: D) -> Result<HashMap<u32, Task>, D::Error>
-where
-    D: Deserializer<'de>,
-{
-    let str_map = HashMap::<String, Task>::deserialize(deserializer)?;
-    let original_len = str_map.len();
-    let data = {
-        str_map
-            .into_iter()
-            .map(|(str_key, mut value)| match str_key.parse() {
-                Ok(int_key) => {
-                    value.id = int_key;    
-                    Ok((int_key, value))
-                },
-                Err(_) => Err({
-                    Error::invalid_value(
-                        Unexpected::Str(&str_key),
-                        &"a non-negative integer",
-                    )
-                }),
-            }).collect::<Result<HashMap<_, _>, _>>()?
-    };
-    // multiple strings could parse to the same int, e.g "0" and "00"
-    if data.len() < original_len {
-        return Err(Error::custom("detected duplicate integer key"));
-    }
-    Ok(data)
-}
-
-/// JobID creating ID from string in Job Data. Uses label to create ID
-#[derive(Serialize, Asset, Clone, Copy, Debug, PartialEq, Eq, Reflect)]
-pub struct JobID(pub u32);
-
-impl fmt::Display for JobID {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "JobID: {}", self.0)
-    }
-}
-
-impl JobID {
-    pub fn from_str(job_string: &str) -> Self {
-        let mut s = DefaultHasher::new();
-        job_string.hash(&mut s);
-        let hashed_id = JobID(s.finish() as u32);
-        return hashed_id;
-    }
-}
-
-impl<'de> Deserialize<'de> for JobID {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        let string_job_id: String = Deserialize::deserialize(deserializer)?;
-        let mut s = DefaultHasher::new();
-        string_job_id.hash(&mut s);
-        let hashed_id = JobID(s.finish() as u32);
-        #[cfg(feature="verbose")]
-        info!(" [JOBS] Job String: {} Hashed ID: {}", string_job_id, hashed_id);
-        return Ok(hashed_id);
-    }
-}
-
-#[derive(Clone, Copy, Default, Serialize, Deserialize, Reflect, Debug)]
+#[derive(Clone, Copy, Default, Reflect, Debug)]
 pub enum JobOnFail {
     #[default]
     Cancel,
@@ -259,13 +165,11 @@ pub enum JobOnFail {
     Despawn
 }
 
-
-
 /// JobData is read from job.toml files
-#[derive(Asset, Debug, Reflect, Clone, Serialize, Deserialize)]
+#[derive(Asset, Debug, Reflect, Clone)]
 pub struct JobData {
-    pub id:            JobID,
-    pub label:         String,
+    /// Ideally unique name
+    pub name:          &'static str,
     pub on_fail:       JobOnFail,
     pub tasks:         JobTasks
 }
@@ -277,7 +181,7 @@ impl JobData {
         entity:    Entity
     ) {
         #[cfg(feature="verbose")]
-        info!(" [JOBS] Assign JobData {} to {}", self.label, entity);
+        info!(" [JOBS] Assign JobData {} to {}", self.name, entity);
 
         let mut job = Job::new(self.clone());
         job.set_active();
@@ -311,7 +215,7 @@ impl JobData {
 
 
 
-#[derive(PartialEq, Copy, Clone, Debug, Reflect, Serialize, Deserialize)]
+#[derive(PartialEq, Copy, Clone, Debug, Reflect)]
 pub enum JobStatus {
     ToDo,
     Active,
@@ -320,13 +224,11 @@ pub enum JobStatus {
     Inactive
 }
 
-#[derive(Component, Debug, Reflect, Clone, Serialize, Deserialize)]
+#[derive(Component, Debug, Reflect, Clone)]
 #[reflect(Component)]
 pub struct Job {
     loopk:             u32,              // Used for loops to count iterations
     status:            JobStatus,
-    #[serde(serialize_with = "serialize_job_data")]
-    // #[serde(deserialize_with="deserialize_job_data")]
     pub data:          JobData,          // List of tasks to be performed by entity
 }
 
@@ -372,7 +274,7 @@ impl Job {
             commands.entity(job_entity).insert(self.clone());
             return Some(job_entity);
         } else {
-            error!(" [JOBS] Could not start job {}", self.data.label);
+            error!(" [JOBS] Could not start job {}", self.data.name);
             return None;
         }
 
@@ -496,8 +398,8 @@ impl Job {
         
     }
 
-    pub fn label(&self) -> &str {
-        &self.data.label
+    pub fn name(&self) -> &str {
+        &self.data.name
     }
 
 }

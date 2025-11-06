@@ -10,13 +10,12 @@ use bevy::ecs::component::Component;
 use bevy::ecs::system::{Commands, Local, Res, ResMut};
 use bevy::ecs::resource::Resource;
 use bevy::reflect::{Reflect, TypePath};
-use bevy_common_assets::json::JsonAssetPlugin;
-use bevy_common_assets::toml::TomlAssetPlugin;
+// use bevy_common_assets::json::JsonAssetPlugin;
+// use bevy_common_assets::toml::TomlAssetPlugin;
 use bevy_pg_calendar::prelude::{Calendar, CalendarNewHourEvent, Cron};
-use serde::{Deserialize, Serialize};
 use std::hash::Hash;
 
-use super::types::{PGTask, JobTasks, JobData, Job, JobID};
+use super::types::{PGTask, JobData, Job};
 
 #[derive(Debug, Hash, PartialEq, Eq, Clone, SystemSet)]
 pub enum TaskSets {
@@ -47,15 +46,6 @@ impl Default for PGJobsPlugin {
 impl Plugin for PGJobsPlugin {
     fn build(&self, app: &mut App) {
         app
-        .register_type::<Job>()
-        .register_type::<JobID>()
-        .register_type::<JobData>()
-        .register_type::<JobTasks>()
-        .register_type::<JobStatus>()
-        .register_type::<JobSchedule>()
-        .register_type::<JobDebug>()
-        .register_type::<JobPaused>()
-
         .register_type_data::<Box<dyn PGTask>, ReflectSerialize>()
         .register_type_data::<Box<dyn PGTask>, ReflectDeserialize>()
 
@@ -73,12 +63,12 @@ impl Plugin for PGJobsPlugin {
             ).chain().in_set(PGJobsSet)
         )
 
-        .add_plugins(JsonAssetPlugin::<JobData>::new(&["job.json"]))
-        .add_plugins(TomlAssetPlugin::<JobData>::new(&["job.toml"]))
-        .add_plugins(JsonAssetPlugin::<JobTrigger>::new(&["trigger.json"]))
-        .add_plugins(TomlAssetPlugin::<JobTrigger>::new(&["trigger.toml"]))
-        .add_plugins(JsonAssetPlugin::<JobTriggers>::new(&["triggers.json"]))
-        .add_plugins(TomlAssetPlugin::<JobTriggers>::new(&["triggers.toml"]))
+        // .add_plugins(JsonAssetPlugin::<JobData>::new(&["job.json"]))
+        // .add_plugins(TomlAssetPlugin::<JobData>::new(&["job.toml"]))
+        // .add_plugins(JsonAssetPlugin::<JobTrigger>::new(&["trigger.json"]))
+        // .add_plugins(TomlAssetPlugin::<JobTrigger>::new(&["trigger.toml"]))
+        // .add_plugins(JsonAssetPlugin::<JobTriggers>::new(&["triggers.json"]))
+        // .add_plugins(TomlAssetPlugin::<JobTriggers>::new(&["triggers.toml"]))
 
         .insert_resource(JobSettings::init(self.active, self.debug))
         .insert_resource(JobCatalog::init())
@@ -145,7 +135,7 @@ pub struct StopJobEvent {
 
 #[derive(Message)]
 pub struct StartJobEvent {
-    pub job_id: JobID,
+    pub name: &'static str,
     pub entity: Entity
 }
 
@@ -256,23 +246,24 @@ impl JobCatalog {
     pub fn clear(&mut self){
         self.data.clear();
     } 
-    pub fn get(&self, id: JobID) -> Option<JobData> {
-        for job in self.data.iter() {
-            if job.id == id {
-                return Some(job.clone());
+
+    pub fn get(&self, job_name: &'static str) -> Option<&JobData> {
+        for jd in self.data.iter(){
+            if jd.name == job_name {
+                return Some(jd);
             }
         }
-        error!(" [JOBS] Missing job id in the catalog: {}", id);
         return None;
     }
+
     pub fn assign(
         &self, 
         commands:   &mut Commands, 
         entity:     Entity,
-        job_id:     JobID, 
+        job_name:   &'static str, 
     ){
         commands.entity(entity).remove::<Job>();
-        if let Some(jobdata) = self.get(job_id){
+        if let Some(jobdata) = self.get(job_name){
             let mut job = Job::new(jobdata.clone());
             job.set_active();
             commands.entity(entity).insert(job);
@@ -282,7 +273,7 @@ impl JobCatalog {
                 error!("Could not start first task for entity: {}", entity);
             }
         } else {
-            error!("Could not assign job: {} to entity: {}", job_id, entity);
+            error!("Could not assign job: {} to entity: {}", job_name, entity);
         }
 
     }
@@ -290,9 +281,9 @@ impl JobCatalog {
     pub fn start(
         &self, 
         commands: &mut Commands, 
-        job_id: JobID
+        job_name:   &'static str
     ) -> Option<Entity> {
-        if let Some(jobdata) = self.get(job_id){
+        if let Some(jobdata) = self.get(job_name){
             if let Some(job_entity) = jobdata.start(commands){
                 return Some(job_entity);
             }
@@ -398,20 +389,20 @@ pub enum JobStatus {
     Inactive
 }
 
-#[derive(Asset, TypePath, Clone, Debug, Serialize, Deserialize)]
+#[derive(Asset, TypePath, Clone, Debug)]
 pub struct JobTriggers {
     pub data: Vec<JobTrigger>
 }
 
-#[derive(Asset, TypePath, Clone, Debug, Serialize, Deserialize)]
+#[derive(Asset, TypePath, Clone, Debug)]
 pub struct JobTrigger {
+    pub name:          &'static str,
     pub trigger_id:    u32,
-    pub job_id:        JobID,
     pub schedule:      JobSchedule,
     pub active:        bool
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Reflect)]
+#[derive(Debug, Clone, PartialEq, Reflect)]
 pub enum JobSchedule {      
     Instant,             // Start instantly       
     Cron(Cron),          // Waiting for Cron 
@@ -444,7 +435,7 @@ fn trigger_jobs_calendar(
         match &job_trigger.schedule {
             JobSchedule::Cron(cron) => {
                 if cron.is_time(&calendar){
-                    job_catalog.start(&mut commands, job_trigger.job_id);
+                    job_catalog.start(&mut commands, job_trigger.name);
                 }
              }
             _=> {}
@@ -467,7 +458,7 @@ fn trigger_jobs_time(
 
         match &job_trigger.schedule {
             JobSchedule::Instant => {
-                job_catalog.start(&mut commands, job_trigger.job_id);
+                job_catalog.start(&mut commands, job_trigger.name);
             }
             _=> {}
         }
@@ -494,9 +485,9 @@ fn start_job(
 ){
     for ev in start_job.read(){
         #[cfg(feature="verbose")]
-        info!(" [JOBS] Adding job {} to entity {:?}", ev.job_id, ev.entity);
+        info!(" [JOBS] Adding job {} to entity {:?}", ev.name, ev.entity);
 
-        jobs_catalog.assign(&mut commands, ev.entity, ev.job_id);
+        jobs_catalog.assign(&mut commands, ev.entity, ev.name);
     }
 }
 
