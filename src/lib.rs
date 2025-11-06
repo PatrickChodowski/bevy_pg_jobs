@@ -16,5 +16,6 @@ pub mod prelude {
 }
 
 pub mod macros {
-    pub use pg_jobs_macros::PGTask;
+    pub use pg_jobs_proc_macros::{PGTask};
+    pub use pg_jobs_macros::{first, first_with, next, next_with};
 }

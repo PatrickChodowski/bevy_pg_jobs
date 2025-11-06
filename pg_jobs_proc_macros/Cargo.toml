@@ -1,9 +1,12 @@
 [package]
-name = "pg_jobs_macros"
+name = "pg_jobs_proc_macros"
 version = "1.21.0"
 edition = "2024"
 
 [dependencies]
 syn = { version = "2.0", features = ["full"] }
 quote = "1.0"
+proc-macro2 = "1.0"
 
+[lib]
+proc-macro = true

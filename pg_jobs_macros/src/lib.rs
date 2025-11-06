@@ -1,32 +1,27 @@
-use proc_macro::TokenStream;
-use quote::quote;
-use syn::{parse_macro_input, DeriveInput};
-
-// https://github.com/dtolnay/dyn-clone
-
-#[proc_macro_derive(PGTask)]
-pub fn derive_pg_task(input: TokenStream) -> TokenStream {
-    let input = parse_macro_input!(input as DeriveInput);
-    let name = &input.ident;
-
-    let expanded = quote! {
-        // #[typetag::serde]
-        impl PGTask for #name {
-
-            fn insert(&self, commands: &mut Commands, entity: &Entity) {
-                commands.entity(*entity).try_insert(self.clone());
-            }
-
-            fn remove(&self, commands: &mut Commands, entity: &Entity){
-                commands.entity(*entity).try_remove::<Self>();
-            }
-
-            fn spawn(&self, commands: &mut Commands) -> Entity {
-                let entity = commands.spawn(self.clone()).id();
-                return entity;
-            }
-        }
+#[macro_export]
+macro_rules! first {
+    ($var:expr, $task:ty) => {
+        $var.first(Box::new($task))
     };
+}
 
-    TokenStream::from(expanded)
+#[macro_export]
+macro_rules! next {
+    ($var:expr, $task:ty) => {
+        $var.next(Box::new($task))
+    };
+}
+
+#[macro_export]
+macro_rules! next_with {
+    ($var:expr, $task:ty, $next:ty) => {
+        $var.next(Box::new($task)).with_next($next)
+    };
+}
+
+#[macro_export]
+macro_rules! first_with {
+    ($var:expr, $task:ty, $next:ty) => {
+        $var.first(Box::new($task)).with_next($next)
+    };
 }
