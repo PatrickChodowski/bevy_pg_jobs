@@ -5,7 +5,7 @@ use bevy_pg_calendar::prelude::Calendar;
 use rand::Rng;
 
 use crate::prelude::{PGTask, Job, JobSchedule};
-use pg_jobs_macros::PGTask;
+use pg_jobs_proc_macros::PGTask;
 
 
 pub struct PGJobsCommonPlugin;
