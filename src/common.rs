@@ -3,7 +3,6 @@
 use bevy::prelude::*;
 use bevy_pg_calendar::prelude::Calendar;
 use rand::Rng;
-use serde::{Serialize, Deserialize};
 
 use crate::prelude::{PGTask, Job, JobSchedule};
 use pg_jobs_macros::PGTask;
@@ -26,32 +25,29 @@ impl Plugin for PGJobsCommonPlugin {
 }
 
 
-#[derive(Component, Clone, Copy, Debug, Reflect, Serialize, Deserialize, PGTask)]
+#[derive(Component, Clone, Copy, Debug, Reflect, PGTask)]
 #[component(storage = "SparseSet")]
-#[reflect(Component, Serialize, Deserialize)]
+#[reflect(Component)]
 pub struct DespawnTask;
 
-#[derive(Component, Clone, Copy, Debug, Reflect, Serialize, Deserialize, PGTask)]
+#[derive(Component, Clone, Copy, Debug, Reflect, PGTask)]
 #[component(storage = "SparseSet")]
 #[reflect(Component)]
-#[reflect(Serialize)]
 pub struct HideTask;
 
-#[derive(Component, Clone, Copy, Debug, Reflect, Serialize, Deserialize, PGTask)]
+#[derive(Component, Clone, Copy, Debug, Reflect, PGTask)]
 #[component(storage = "SparseSet")]
 #[reflect(Component)]
-#[reflect(Serialize)]
 pub struct ShowTask;
 
-#[derive(Component, Clone, Debug, Reflect, Serialize, Deserialize, PGTask)]
+#[derive(Component, Clone, Debug, Reflect, PGTask)]
 #[component(storage = "SparseSet")]
 #[reflect(Component)]
-#[reflect(Serialize)]
 pub struct WaitTask {
     pub schedule: JobSchedule
 }
 
-#[derive(Component, Clone, Copy, Debug, Reflect, Serialize, Deserialize, PGTask)]
+#[derive(Component, Clone, Copy, Debug, Reflect, PGTask)]
 #[component(storage = "SparseSet")]
 #[reflect(Component)]
 pub struct RandomWaitTask{
@@ -64,14 +60,14 @@ impl RandomWaitTask {
     }
 }
 
-#[derive(Component, Clone, Copy, Debug, Reflect, Serialize, Deserialize, PGTask)]
+#[derive(Component, Clone, Copy, Debug, Reflect, PGTask)]
 #[component(storage = "SparseSet")]
 #[reflect(Component)]
 pub struct TeleportTask {
     pub loc: Vec3
 }
 
-#[derive(Component, Clone, Copy, Debug, Reflect, Serialize, Deserialize, PGTask)]
+#[derive(Component, Clone, Copy, Debug, Reflect, PGTask)]
 #[component(storage = "SparseSet")]
 #[reflect(Component)]
 pub struct LoopTask {
