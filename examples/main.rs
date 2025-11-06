@@ -2,7 +2,7 @@ use bevy::prelude::*;
 use bevy_pg_jobs::prelude::*;
 use bevy_pg_calendar::prelude::PGCalendarPlugin;
 use bevy_pg_jobs::common::*;
-use bevy_pg_jobs::macros::{first, next, first_with, next_with};
+use bevy_pg_jobs::macros::{first, next};
 
 fn main() {
     App::new()
@@ -43,8 +43,8 @@ fn init(
     let mut jt = JobTasks::new();
     first!(jt, HideTask);
     next!(jt, ShowTask);
-    first_with!(jt, HideTask, 0);
-    next_with!(jt, ShowTask, 0);
+    first!(jt, HideTask, 0);
+    next!(jt, ShowTask, 0);
 
     commands.spawn((
         square_sprite.clone(),
