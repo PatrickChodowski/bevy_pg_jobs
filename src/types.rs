@@ -10,7 +10,7 @@ use bevy::reflect::{ApplyError, GetTypeRegistration, ReflectMut, ReflectOwned, R
 
 use crate::jobs::JobPaused;
 
-#[typetag::serde(tag = "type")]
+// #[typetag::serde(tag = "type")]
 pub trait PGTask: Reflect + Any + Send + Sync + DynClone + Debug {
     fn insert(&self, commands: &mut Commands, entity: &Entity);
     fn remove(&self, commands: &mut Commands, entity: &Entity);

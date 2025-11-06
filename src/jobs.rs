@@ -46,8 +46,8 @@ impl Default for PGJobsPlugin {
 impl Plugin for PGJobsPlugin {
     fn build(&self, app: &mut App) {
         app
-        .register_type_data::<Box<dyn PGTask>, ReflectSerialize>()
-        .register_type_data::<Box<dyn PGTask>, ReflectDeserialize>()
+        // .register_type_data::<Box<dyn PGTask>, ReflectSerialize>()
+        // .register_type_data::<Box<dyn PGTask>, ReflectDeserialize>()
 
         .add_message::<StopJobEvent>()
         .add_message::<StartJobEvent>()
@@ -152,10 +152,10 @@ fn init(
     mut commands:   Commands,
     ass:            Res<AssetServer>
 ){
-    let handle_folder_jobdata: Handle<LoadedFolder> = ass.load_folder("jobs/data");
-    let handle_folder_jobtrigger: Handle<LoadedFolder> = ass.load_folder("jobs/triggers");
-    commands.insert_resource(LoadedJobDataHandles(handle_folder_jobdata));
-    commands.insert_resource(LoadedJobTriggerHandles(handle_folder_jobtrigger));
+    // let handle_folder_jobdata: Handle<LoadedFolder> = ass.load_folder("jobs/data");
+    // let handle_folder_jobtrigger: Handle<LoadedFolder> = ass.load_folder("jobs/triggers");
+    // commands.insert_resource(LoadedJobDataHandles(handle_folder_jobdata));
+    // commands.insert_resource(LoadedJobTriggerHandles(handle_folder_jobtrigger));
 }
 
 struct JobsReady {

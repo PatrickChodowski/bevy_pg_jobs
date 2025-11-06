@@ -1,6 +1,6 @@
 
 #[cfg(feature="common")]
-mod common;
+pub mod common;
 
 mod jobs;
 mod types;
