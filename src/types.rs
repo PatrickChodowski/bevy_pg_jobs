@@ -74,6 +74,20 @@ impl Default for JobTasks {
 }
 
 impl JobTasks { 
+    pub fn from_vec(v: Vec<Box<dyn PGTask>>) -> Self {
+        let mut jt = JobTasks::new();
+        for (index, task) in v.iter().enumerate(){
+            if index == 0 {
+                jt.first(task.clone());
+            } else {
+                jt.next(task.clone());
+            }
+
+        }
+        return jt;
+    }
+
+
     pub fn new() -> Self {
         JobTasks{
             data: HashMap::default(),
