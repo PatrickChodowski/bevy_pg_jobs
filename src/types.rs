@@ -200,7 +200,7 @@ impl JobData {
         commands: &mut Commands
     ) -> Option<Entity>{ 
         #[cfg(feature="verbose")]
-        info!(" [JOBS] Starting JobData {}", self.label);
+        info!(" [JOBS] Starting JobData {}", self.name);
         if let Some(first_task) = self.tasks.get_current(){
             let job_entity = first_task.task.spawn(commands);
             let mut job = Job::new(self.clone());
@@ -250,7 +250,7 @@ impl Job {
         entity:    Entity
     ) {
         #[cfg(feature="verbose")]
-        info!(" [JOBS] Assign job {} to {}", self.data.label, entity);
+        info!(" [JOBS] Assign job {} to {}", self.data.name, entity);
 
         self.set_active();
         commands.entity(entity).insert(self.clone());
@@ -267,7 +267,7 @@ impl Job {
         commands: &mut Commands
     ) -> Option<Entity>{ 
         #[cfg(feature="verbose")]
-        info!(" [JOBS] Starting job {}", self.data.label);
+        info!(" [JOBS] Starting job {}", self.data.name);
         self.set_active();
         if let Some(first_task) = self.data.tasks.get_current(){
             let job_entity = first_task.task.spawn(commands);
