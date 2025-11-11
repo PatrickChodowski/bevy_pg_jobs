@@ -106,7 +106,7 @@ fn observe_add_job(
     trigger: Trigger<OnAdd, Job>,
     jobs: Query<&Job>
 ){
-    info!("Added Job {} to {}", jobs.get(trigger.target()).unwrap().name, trigger.target());
+    info!("Added Job {} to {}", jobs.get(trigger.target()).unwrap().name(), trigger.target());
 }
 
 #[cfg(feature="verbose")]
@@ -114,7 +114,7 @@ fn observe_replace_job(
     trigger: Trigger<OnReplace, Job>,
     jobs: Query<&Job>
 ){
-    info!("Replaced old Job to {} on {}",  jobs.get(trigger.target()).unwrap().name, trigger.target());
+    info!("Replaced old Job to {} on {}",  jobs.get(trigger.target()).unwrap().name(), trigger.target());
 }
 
 #[cfg(feature="verbose")]
@@ -122,7 +122,7 @@ fn observe_remove_job(
     trigger: Trigger<OnRemove, Job>,
     jobs: Query<&Job>
 ){
-    info!("Removed Job {} from {}", jobs.get(trigger.target()).unwrap().name, trigger.target());
+    info!("Removed Job {} from {}", jobs.get(trigger.target()).unwrap().name(), trigger.target());
 }
 
 
