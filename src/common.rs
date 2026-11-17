@@ -3,6 +3,7 @@
 use bevy::prelude::*;
 use bevy_pg_calendar::prelude::Calendar;
 use rand::Rng;
+use rand::RngExt;
 
 use crate::prelude::{PGTask, Job, JobSchedule};
 use pg_jobs_proc_macros::PGTask;
