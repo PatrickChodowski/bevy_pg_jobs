@@ -19,7 +19,7 @@ pub trait PGTask: Reflect + Any + Send + Sync + DynClone + Debug {
 
 dyn_clone::clone_trait_object!(PGTask);
 
-#[derive(Debug, Reflect, Resource, Clone, Component)]
+#[derive(Debug, Reflect, Clone, Component)]
 pub struct Task {
     pub id:     u32,
     pub next:   Option<u32>,

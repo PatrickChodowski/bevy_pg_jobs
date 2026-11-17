@@ -14,6 +14,8 @@ use bevy::reflect::{Reflect, TypePath};
 // use bevy_common_assets::toml::TomlAssetPlugin;
 use bevy_pg_calendar::prelude::{Calendar, CalendarNewHourEvent, Cron};
 use std::hash::Hash;
+// use bevy::ecs::schedule::SystemCondition;
+use bevy::ecs::schedule::common_conditions::resource_exists;
 
 use super::types::{PGTask, JobData, Job};
 
@@ -75,9 +77,12 @@ impl Plugin for PGJobsPlugin {
         .insert_resource(JobScheduler::init())
 
         .add_systems(Startup,   init)
-        .add_systems(Update,    track.run_if(resource_exists::<LoadedJobDataHandles>
-                                     .and(resource_exists::<LoadedJobTriggerHandles>)))
-
+        .add_systems(
+            Update,
+            track
+                .run_if(resource_exists::<LoadedJobDataHandles>)
+                .run_if(resource_exists::<LoadedJobTriggerHandles>),
+        )
         .add_systems(PreUpdate, (
                 trigger_jobs_calendar.run_if(on_message::<CalendarNewHourEvent>), 
                 trigger_jobs_time
